@@ -19,8 +19,7 @@
 | 配置项 | 值 |
 |--------|-----|
 | 端口 | 5432 |
-| psql 路径 | `C:\Program Files\PostgreSQL\16\bin\psql.exe` |
-| pg_hba.conf | `C:\Program Files\PostgreSQL\16\data\pg_hba.conf` |
+| psql 路径 | `docker`里面的postgres容器 |
 | 数据库凭据 | user=`sub2api`, password=`sub2api`, dbname=`sub2api` |
 | 超级用户 | user=`postgres`, password=`postgres` |
 
@@ -169,29 +168,6 @@ grep -r "type.*Stub.*struct" internal/
 grep -r "type.*Mock.*struct" internal/
 
 # 逐一补全新方法
-```
-
----
-
-### 坑 7：Windows 上 psql 连 localhost 的 IPv6 问题
-
-**问题**：psql 连 `localhost` 先尝试 IPv6 (::1)，可能报错后再回退 IPv4。
-
-**建议**：直接用 `127.0.0.1` 代替 `localhost`。
-
----
-
-### 坑 8：Windows 没有 make 命令
-
-**问题**：CI 里用 `make test-unit`，本地 Windows 没有 make。
-
-**解决**：直接用 Makefile 里的原始命令：
-```bash
-# 代替 make test-unit
-go test -tags=unit ./...
-
-# 代替 make test-integration
-go test -tags=integration ./...
 ```
 
 ---
