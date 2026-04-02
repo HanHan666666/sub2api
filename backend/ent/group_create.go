@@ -480,6 +480,62 @@ func (_c *GroupCreate) SetNillableDefaultMappedModel(v *string) *GroupCreate {
 	return _c
 }
 
+// SetPerRequestPrice sets the "per_request_price" field.
+func (_c *GroupCreate) SetPerRequestPrice(v float64) *GroupCreate {
+	_c.mutation.SetPerRequestPrice(v)
+	return _c
+}
+
+// SetNillablePerRequestPrice sets the "per_request_price" field if the given value is not nil.
+func (_c *GroupCreate) SetNillablePerRequestPrice(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetPerRequestPrice(*v)
+	}
+	return _c
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (_c *GroupCreate) SetDailyLimitRequests(v int64) *GroupCreate {
+	_c.mutation.SetDailyLimitRequests(v)
+	return _c
+}
+
+// SetNillableDailyLimitRequests sets the "daily_limit_requests" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDailyLimitRequests(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetDailyLimitRequests(*v)
+	}
+	return _c
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (_c *GroupCreate) SetWeeklyLimitRequests(v int64) *GroupCreate {
+	_c.mutation.SetWeeklyLimitRequests(v)
+	return _c
+}
+
+// SetNillableWeeklyLimitRequests sets the "weekly_limit_requests" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableWeeklyLimitRequests(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetWeeklyLimitRequests(*v)
+	}
+	return _c
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (_c *GroupCreate) SetMonthlyLimitRequests(v int64) *GroupCreate {
+	_c.mutation.SetMonthlyLimitRequests(v)
+	return _c
+}
+
+// SetNillableMonthlyLimitRequests sets the "monthly_limit_requests" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableMonthlyLimitRequests(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetMonthlyLimitRequests(*v)
+	}
+	return _c
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_c *GroupCreate) AddAPIKeyIDs(ids ...int64) *GroupCreate {
 	_c.mutation.AddAPIKeyIDs(ids...)
@@ -934,6 +990,22 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DefaultMappedModel(); ok {
 		_spec.SetField(group.FieldDefaultMappedModel, field.TypeString, value)
 		_node.DefaultMappedModel = value
+	}
+	if value, ok := _c.mutation.PerRequestPrice(); ok {
+		_spec.SetField(group.FieldPerRequestPrice, field.TypeFloat64, value)
+		_node.PerRequestPrice = &value
+	}
+	if value, ok := _c.mutation.DailyLimitRequests(); ok {
+		_spec.SetField(group.FieldDailyLimitRequests, field.TypeInt64, value)
+		_node.DailyLimitRequests = &value
+	}
+	if value, ok := _c.mutation.WeeklyLimitRequests(); ok {
+		_spec.SetField(group.FieldWeeklyLimitRequests, field.TypeInt64, value)
+		_node.WeeklyLimitRequests = &value
+	}
+	if value, ok := _c.mutation.MonthlyLimitRequests(); ok {
+		_spec.SetField(group.FieldMonthlyLimitRequests, field.TypeInt64, value)
+		_node.MonthlyLimitRequests = &value
 	}
 	if nodes := _c.mutation.APIKeysIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1673,6 +1745,102 @@ func (u *GroupUpsert) UpdateDefaultMappedModel() *GroupUpsert {
 	return u
 }
 
+// SetPerRequestPrice sets the "per_request_price" field.
+func (u *GroupUpsert) SetPerRequestPrice(v float64) *GroupUpsert {
+	u.Set(group.FieldPerRequestPrice, v)
+	return u
+}
+
+// UpdatePerRequestPrice sets the "per_request_price" field to the value that was provided on create.
+func (u *GroupUpsert) UpdatePerRequestPrice() *GroupUpsert {
+	u.SetExcluded(group.FieldPerRequestPrice)
+	return u
+}
+
+// AddPerRequestPrice adds v to the "per_request_price" field.
+func (u *GroupUpsert) AddPerRequestPrice(v float64) *GroupUpsert {
+	u.Add(group.FieldPerRequestPrice, v)
+	return u
+}
+
+// ClearPerRequestPrice clears the value of the "per_request_price" field.
+func (u *GroupUpsert) ClearPerRequestPrice() *GroupUpsert {
+	u.SetNull(group.FieldPerRequestPrice)
+	return u
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (u *GroupUpsert) SetDailyLimitRequests(v int64) *GroupUpsert {
+	u.Set(group.FieldDailyLimitRequests, v)
+	return u
+}
+
+// UpdateDailyLimitRequests sets the "daily_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDailyLimitRequests() *GroupUpsert {
+	u.SetExcluded(group.FieldDailyLimitRequests)
+	return u
+}
+
+// AddDailyLimitRequests adds v to the "daily_limit_requests" field.
+func (u *GroupUpsert) AddDailyLimitRequests(v int64) *GroupUpsert {
+	u.Add(group.FieldDailyLimitRequests, v)
+	return u
+}
+
+// ClearDailyLimitRequests clears the value of the "daily_limit_requests" field.
+func (u *GroupUpsert) ClearDailyLimitRequests() *GroupUpsert {
+	u.SetNull(group.FieldDailyLimitRequests)
+	return u
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (u *GroupUpsert) SetWeeklyLimitRequests(v int64) *GroupUpsert {
+	u.Set(group.FieldWeeklyLimitRequests, v)
+	return u
+}
+
+// UpdateWeeklyLimitRequests sets the "weekly_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateWeeklyLimitRequests() *GroupUpsert {
+	u.SetExcluded(group.FieldWeeklyLimitRequests)
+	return u
+}
+
+// AddWeeklyLimitRequests adds v to the "weekly_limit_requests" field.
+func (u *GroupUpsert) AddWeeklyLimitRequests(v int64) *GroupUpsert {
+	u.Add(group.FieldWeeklyLimitRequests, v)
+	return u
+}
+
+// ClearWeeklyLimitRequests clears the value of the "weekly_limit_requests" field.
+func (u *GroupUpsert) ClearWeeklyLimitRequests() *GroupUpsert {
+	u.SetNull(group.FieldWeeklyLimitRequests)
+	return u
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (u *GroupUpsert) SetMonthlyLimitRequests(v int64) *GroupUpsert {
+	u.Set(group.FieldMonthlyLimitRequests, v)
+	return u
+}
+
+// UpdateMonthlyLimitRequests sets the "monthly_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateMonthlyLimitRequests() *GroupUpsert {
+	u.SetExcluded(group.FieldMonthlyLimitRequests)
+	return u
+}
+
+// AddMonthlyLimitRequests adds v to the "monthly_limit_requests" field.
+func (u *GroupUpsert) AddMonthlyLimitRequests(v int64) *GroupUpsert {
+	u.Add(group.FieldMonthlyLimitRequests, v)
+	return u
+}
+
+// ClearMonthlyLimitRequests clears the value of the "monthly_limit_requests" field.
+func (u *GroupUpsert) ClearMonthlyLimitRequests() *GroupUpsert {
+	u.SetNull(group.FieldMonthlyLimitRequests)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -2394,6 +2562,118 @@ func (u *GroupUpsertOne) SetDefaultMappedModel(v string) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateDefaultMappedModel() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateDefaultMappedModel()
+	})
+}
+
+// SetPerRequestPrice sets the "per_request_price" field.
+func (u *GroupUpsertOne) SetPerRequestPrice(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetPerRequestPrice(v)
+	})
+}
+
+// AddPerRequestPrice adds v to the "per_request_price" field.
+func (u *GroupUpsertOne) AddPerRequestPrice(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddPerRequestPrice(v)
+	})
+}
+
+// UpdatePerRequestPrice sets the "per_request_price" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdatePerRequestPrice() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdatePerRequestPrice()
+	})
+}
+
+// ClearPerRequestPrice clears the value of the "per_request_price" field.
+func (u *GroupUpsertOne) ClearPerRequestPrice() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearPerRequestPrice()
+	})
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (u *GroupUpsertOne) SetDailyLimitRequests(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDailyLimitRequests(v)
+	})
+}
+
+// AddDailyLimitRequests adds v to the "daily_limit_requests" field.
+func (u *GroupUpsertOne) AddDailyLimitRequests(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDailyLimitRequests(v)
+	})
+}
+
+// UpdateDailyLimitRequests sets the "daily_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDailyLimitRequests() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDailyLimitRequests()
+	})
+}
+
+// ClearDailyLimitRequests clears the value of the "daily_limit_requests" field.
+func (u *GroupUpsertOne) ClearDailyLimitRequests() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDailyLimitRequests()
+	})
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (u *GroupUpsertOne) SetWeeklyLimitRequests(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetWeeklyLimitRequests(v)
+	})
+}
+
+// AddWeeklyLimitRequests adds v to the "weekly_limit_requests" field.
+func (u *GroupUpsertOne) AddWeeklyLimitRequests(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddWeeklyLimitRequests(v)
+	})
+}
+
+// UpdateWeeklyLimitRequests sets the "weekly_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateWeeklyLimitRequests() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateWeeklyLimitRequests()
+	})
+}
+
+// ClearWeeklyLimitRequests clears the value of the "weekly_limit_requests" field.
+func (u *GroupUpsertOne) ClearWeeklyLimitRequests() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearWeeklyLimitRequests()
+	})
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (u *GroupUpsertOne) SetMonthlyLimitRequests(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetMonthlyLimitRequests(v)
+	})
+}
+
+// AddMonthlyLimitRequests adds v to the "monthly_limit_requests" field.
+func (u *GroupUpsertOne) AddMonthlyLimitRequests(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddMonthlyLimitRequests(v)
+	})
+}
+
+// UpdateMonthlyLimitRequests sets the "monthly_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateMonthlyLimitRequests() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateMonthlyLimitRequests()
+	})
+}
+
+// ClearMonthlyLimitRequests clears the value of the "monthly_limit_requests" field.
+func (u *GroupUpsertOne) ClearMonthlyLimitRequests() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearMonthlyLimitRequests()
 	})
 }
 
@@ -3284,6 +3564,118 @@ func (u *GroupUpsertBulk) SetDefaultMappedModel(v string) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateDefaultMappedModel() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateDefaultMappedModel()
+	})
+}
+
+// SetPerRequestPrice sets the "per_request_price" field.
+func (u *GroupUpsertBulk) SetPerRequestPrice(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetPerRequestPrice(v)
+	})
+}
+
+// AddPerRequestPrice adds v to the "per_request_price" field.
+func (u *GroupUpsertBulk) AddPerRequestPrice(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddPerRequestPrice(v)
+	})
+}
+
+// UpdatePerRequestPrice sets the "per_request_price" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdatePerRequestPrice() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdatePerRequestPrice()
+	})
+}
+
+// ClearPerRequestPrice clears the value of the "per_request_price" field.
+func (u *GroupUpsertBulk) ClearPerRequestPrice() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearPerRequestPrice()
+	})
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (u *GroupUpsertBulk) SetDailyLimitRequests(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDailyLimitRequests(v)
+	})
+}
+
+// AddDailyLimitRequests adds v to the "daily_limit_requests" field.
+func (u *GroupUpsertBulk) AddDailyLimitRequests(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDailyLimitRequests(v)
+	})
+}
+
+// UpdateDailyLimitRequests sets the "daily_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDailyLimitRequests() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDailyLimitRequests()
+	})
+}
+
+// ClearDailyLimitRequests clears the value of the "daily_limit_requests" field.
+func (u *GroupUpsertBulk) ClearDailyLimitRequests() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDailyLimitRequests()
+	})
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (u *GroupUpsertBulk) SetWeeklyLimitRequests(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetWeeklyLimitRequests(v)
+	})
+}
+
+// AddWeeklyLimitRequests adds v to the "weekly_limit_requests" field.
+func (u *GroupUpsertBulk) AddWeeklyLimitRequests(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddWeeklyLimitRequests(v)
+	})
+}
+
+// UpdateWeeklyLimitRequests sets the "weekly_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateWeeklyLimitRequests() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateWeeklyLimitRequests()
+	})
+}
+
+// ClearWeeklyLimitRequests clears the value of the "weekly_limit_requests" field.
+func (u *GroupUpsertBulk) ClearWeeklyLimitRequests() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearWeeklyLimitRequests()
+	})
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (u *GroupUpsertBulk) SetMonthlyLimitRequests(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetMonthlyLimitRequests(v)
+	})
+}
+
+// AddMonthlyLimitRequests adds v to the "monthly_limit_requests" field.
+func (u *GroupUpsertBulk) AddMonthlyLimitRequests(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddMonthlyLimitRequests(v)
+	})
+}
+
+// UpdateMonthlyLimitRequests sets the "monthly_limit_requests" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateMonthlyLimitRequests() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateMonthlyLimitRequests()
+	})
+}
+
+// ClearMonthlyLimitRequests clears the value of the "monthly_limit_requests" field.
+func (u *GroupUpsertBulk) ClearMonthlyLimitRequests() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearMonthlyLimitRequests()
 	})
 }
 

@@ -163,6 +163,27 @@ func (Group) Fields() []ent.Field {
 			MaxLen(100).
 			Default("").
 			Comment("默认映射模型 ID，当账号级映射找不到时使用此值"),
+
+		// 按次计费配置 (added by migration 082)
+		field.Float("per_request_price").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "decimal(20,10)",
+			}).
+			Comment("按次计费单价（USD）"),
+		field.Int64("daily_limit_requests").
+			Optional().
+			Nillable().
+			Comment("每日请求次数限额"),
+		field.Int64("weekly_limit_requests").
+			Optional().
+			Nillable().
+			Comment("每周请求次数限额"),
+		field.Int64("monthly_limit_requests").
+			Optional().
+			Nillable().
+			Comment("每月请求次数限额"),
 	}
 }
 

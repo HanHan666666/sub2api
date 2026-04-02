@@ -8256,6 +8256,14 @@ type GroupMutation struct {
 	require_oauth_only                      *bool
 	require_privacy_set                     *bool
 	default_mapped_model                    *string
+	per_request_price                       *float64
+	addper_request_price                    *float64
+	daily_limit_requests                    *int64
+	adddaily_limit_requests                 *int64
+	weekly_limit_requests                   *int64
+	addweekly_limit_requests                *int64
+	monthly_limit_requests                  *int64
+	addmonthly_limit_requests               *int64
 	clearedFields                           map[string]struct{}
 	api_keys                                map[int64]struct{}
 	removedapi_keys                         map[int64]struct{}
@@ -10144,6 +10152,286 @@ func (m *GroupMutation) ResetDefaultMappedModel() {
 	m.default_mapped_model = nil
 }
 
+// SetPerRequestPrice sets the "per_request_price" field.
+func (m *GroupMutation) SetPerRequestPrice(f float64) {
+	m.per_request_price = &f
+	m.addper_request_price = nil
+}
+
+// PerRequestPrice returns the value of the "per_request_price" field in the mutation.
+func (m *GroupMutation) PerRequestPrice() (r float64, exists bool) {
+	v := m.per_request_price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPerRequestPrice returns the old "per_request_price" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldPerRequestPrice(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPerRequestPrice is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPerRequestPrice requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPerRequestPrice: %w", err)
+	}
+	return oldValue.PerRequestPrice, nil
+}
+
+// AddPerRequestPrice adds f to the "per_request_price" field.
+func (m *GroupMutation) AddPerRequestPrice(f float64) {
+	if m.addper_request_price != nil {
+		*m.addper_request_price += f
+	} else {
+		m.addper_request_price = &f
+	}
+}
+
+// AddedPerRequestPrice returns the value that was added to the "per_request_price" field in this mutation.
+func (m *GroupMutation) AddedPerRequestPrice() (r float64, exists bool) {
+	v := m.addper_request_price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearPerRequestPrice clears the value of the "per_request_price" field.
+func (m *GroupMutation) ClearPerRequestPrice() {
+	m.per_request_price = nil
+	m.addper_request_price = nil
+	m.clearedFields[group.FieldPerRequestPrice] = struct{}{}
+}
+
+// PerRequestPriceCleared returns if the "per_request_price" field was cleared in this mutation.
+func (m *GroupMutation) PerRequestPriceCleared() bool {
+	_, ok := m.clearedFields[group.FieldPerRequestPrice]
+	return ok
+}
+
+// ResetPerRequestPrice resets all changes to the "per_request_price" field.
+func (m *GroupMutation) ResetPerRequestPrice() {
+	m.per_request_price = nil
+	m.addper_request_price = nil
+	delete(m.clearedFields, group.FieldPerRequestPrice)
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (m *GroupMutation) SetDailyLimitRequests(i int64) {
+	m.daily_limit_requests = &i
+	m.adddaily_limit_requests = nil
+}
+
+// DailyLimitRequests returns the value of the "daily_limit_requests" field in the mutation.
+func (m *GroupMutation) DailyLimitRequests() (r int64, exists bool) {
+	v := m.daily_limit_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDailyLimitRequests returns the old "daily_limit_requests" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldDailyLimitRequests(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDailyLimitRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDailyLimitRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDailyLimitRequests: %w", err)
+	}
+	return oldValue.DailyLimitRequests, nil
+}
+
+// AddDailyLimitRequests adds i to the "daily_limit_requests" field.
+func (m *GroupMutation) AddDailyLimitRequests(i int64) {
+	if m.adddaily_limit_requests != nil {
+		*m.adddaily_limit_requests += i
+	} else {
+		m.adddaily_limit_requests = &i
+	}
+}
+
+// AddedDailyLimitRequests returns the value that was added to the "daily_limit_requests" field in this mutation.
+func (m *GroupMutation) AddedDailyLimitRequests() (r int64, exists bool) {
+	v := m.adddaily_limit_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDailyLimitRequests clears the value of the "daily_limit_requests" field.
+func (m *GroupMutation) ClearDailyLimitRequests() {
+	m.daily_limit_requests = nil
+	m.adddaily_limit_requests = nil
+	m.clearedFields[group.FieldDailyLimitRequests] = struct{}{}
+}
+
+// DailyLimitRequestsCleared returns if the "daily_limit_requests" field was cleared in this mutation.
+func (m *GroupMutation) DailyLimitRequestsCleared() bool {
+	_, ok := m.clearedFields[group.FieldDailyLimitRequests]
+	return ok
+}
+
+// ResetDailyLimitRequests resets all changes to the "daily_limit_requests" field.
+func (m *GroupMutation) ResetDailyLimitRequests() {
+	m.daily_limit_requests = nil
+	m.adddaily_limit_requests = nil
+	delete(m.clearedFields, group.FieldDailyLimitRequests)
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (m *GroupMutation) SetWeeklyLimitRequests(i int64) {
+	m.weekly_limit_requests = &i
+	m.addweekly_limit_requests = nil
+}
+
+// WeeklyLimitRequests returns the value of the "weekly_limit_requests" field in the mutation.
+func (m *GroupMutation) WeeklyLimitRequests() (r int64, exists bool) {
+	v := m.weekly_limit_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWeeklyLimitRequests returns the old "weekly_limit_requests" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldWeeklyLimitRequests(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWeeklyLimitRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWeeklyLimitRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWeeklyLimitRequests: %w", err)
+	}
+	return oldValue.WeeklyLimitRequests, nil
+}
+
+// AddWeeklyLimitRequests adds i to the "weekly_limit_requests" field.
+func (m *GroupMutation) AddWeeklyLimitRequests(i int64) {
+	if m.addweekly_limit_requests != nil {
+		*m.addweekly_limit_requests += i
+	} else {
+		m.addweekly_limit_requests = &i
+	}
+}
+
+// AddedWeeklyLimitRequests returns the value that was added to the "weekly_limit_requests" field in this mutation.
+func (m *GroupMutation) AddedWeeklyLimitRequests() (r int64, exists bool) {
+	v := m.addweekly_limit_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearWeeklyLimitRequests clears the value of the "weekly_limit_requests" field.
+func (m *GroupMutation) ClearWeeklyLimitRequests() {
+	m.weekly_limit_requests = nil
+	m.addweekly_limit_requests = nil
+	m.clearedFields[group.FieldWeeklyLimitRequests] = struct{}{}
+}
+
+// WeeklyLimitRequestsCleared returns if the "weekly_limit_requests" field was cleared in this mutation.
+func (m *GroupMutation) WeeklyLimitRequestsCleared() bool {
+	_, ok := m.clearedFields[group.FieldWeeklyLimitRequests]
+	return ok
+}
+
+// ResetWeeklyLimitRequests resets all changes to the "weekly_limit_requests" field.
+func (m *GroupMutation) ResetWeeklyLimitRequests() {
+	m.weekly_limit_requests = nil
+	m.addweekly_limit_requests = nil
+	delete(m.clearedFields, group.FieldWeeklyLimitRequests)
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (m *GroupMutation) SetMonthlyLimitRequests(i int64) {
+	m.monthly_limit_requests = &i
+	m.addmonthly_limit_requests = nil
+}
+
+// MonthlyLimitRequests returns the value of the "monthly_limit_requests" field in the mutation.
+func (m *GroupMutation) MonthlyLimitRequests() (r int64, exists bool) {
+	v := m.monthly_limit_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMonthlyLimitRequests returns the old "monthly_limit_requests" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldMonthlyLimitRequests(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMonthlyLimitRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMonthlyLimitRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMonthlyLimitRequests: %w", err)
+	}
+	return oldValue.MonthlyLimitRequests, nil
+}
+
+// AddMonthlyLimitRequests adds i to the "monthly_limit_requests" field.
+func (m *GroupMutation) AddMonthlyLimitRequests(i int64) {
+	if m.addmonthly_limit_requests != nil {
+		*m.addmonthly_limit_requests += i
+	} else {
+		m.addmonthly_limit_requests = &i
+	}
+}
+
+// AddedMonthlyLimitRequests returns the value that was added to the "monthly_limit_requests" field in this mutation.
+func (m *GroupMutation) AddedMonthlyLimitRequests() (r int64, exists bool) {
+	v := m.addmonthly_limit_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearMonthlyLimitRequests clears the value of the "monthly_limit_requests" field.
+func (m *GroupMutation) ClearMonthlyLimitRequests() {
+	m.monthly_limit_requests = nil
+	m.addmonthly_limit_requests = nil
+	m.clearedFields[group.FieldMonthlyLimitRequests] = struct{}{}
+}
+
+// MonthlyLimitRequestsCleared returns if the "monthly_limit_requests" field was cleared in this mutation.
+func (m *GroupMutation) MonthlyLimitRequestsCleared() bool {
+	_, ok := m.clearedFields[group.FieldMonthlyLimitRequests]
+	return ok
+}
+
+// ResetMonthlyLimitRequests resets all changes to the "monthly_limit_requests" field.
+func (m *GroupMutation) ResetMonthlyLimitRequests() {
+	m.monthly_limit_requests = nil
+	m.addmonthly_limit_requests = nil
+	delete(m.clearedFields, group.FieldMonthlyLimitRequests)
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by ids.
 func (m *GroupMutation) AddAPIKeyIDs(ids ...int64) {
 	if m.api_keys == nil {
@@ -10502,7 +10790,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 38)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -10605,6 +10893,18 @@ func (m *GroupMutation) Fields() []string {
 	if m.default_mapped_model != nil {
 		fields = append(fields, group.FieldDefaultMappedModel)
 	}
+	if m.per_request_price != nil {
+		fields = append(fields, group.FieldPerRequestPrice)
+	}
+	if m.daily_limit_requests != nil {
+		fields = append(fields, group.FieldDailyLimitRequests)
+	}
+	if m.weekly_limit_requests != nil {
+		fields = append(fields, group.FieldWeeklyLimitRequests)
+	}
+	if m.monthly_limit_requests != nil {
+		fields = append(fields, group.FieldMonthlyLimitRequests)
+	}
 	return fields
 }
 
@@ -10681,6 +10981,14 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.RequirePrivacySet()
 	case group.FieldDefaultMappedModel:
 		return m.DefaultMappedModel()
+	case group.FieldPerRequestPrice:
+		return m.PerRequestPrice()
+	case group.FieldDailyLimitRequests:
+		return m.DailyLimitRequests()
+	case group.FieldWeeklyLimitRequests:
+		return m.WeeklyLimitRequests()
+	case group.FieldMonthlyLimitRequests:
+		return m.MonthlyLimitRequests()
 	}
 	return nil, false
 }
@@ -10758,6 +11066,14 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldRequirePrivacySet(ctx)
 	case group.FieldDefaultMappedModel:
 		return m.OldDefaultMappedModel(ctx)
+	case group.FieldPerRequestPrice:
+		return m.OldPerRequestPrice(ctx)
+	case group.FieldDailyLimitRequests:
+		return m.OldDailyLimitRequests(ctx)
+	case group.FieldWeeklyLimitRequests:
+		return m.OldWeeklyLimitRequests(ctx)
+	case group.FieldMonthlyLimitRequests:
+		return m.OldMonthlyLimitRequests(ctx)
 	}
 	return nil, fmt.Errorf("unknown Group field %s", name)
 }
@@ -11005,6 +11321,34 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDefaultMappedModel(v)
 		return nil
+	case group.FieldPerRequestPrice:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPerRequestPrice(v)
+		return nil
+	case group.FieldDailyLimitRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDailyLimitRequests(v)
+		return nil
+	case group.FieldWeeklyLimitRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeeklyLimitRequests(v)
+		return nil
+	case group.FieldMonthlyLimitRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMonthlyLimitRequests(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Group field %s", name)
 }
@@ -11061,6 +11405,18 @@ func (m *GroupMutation) AddedFields() []string {
 	if m.addsort_order != nil {
 		fields = append(fields, group.FieldSortOrder)
 	}
+	if m.addper_request_price != nil {
+		fields = append(fields, group.FieldPerRequestPrice)
+	}
+	if m.adddaily_limit_requests != nil {
+		fields = append(fields, group.FieldDailyLimitRequests)
+	}
+	if m.addweekly_limit_requests != nil {
+		fields = append(fields, group.FieldWeeklyLimitRequests)
+	}
+	if m.addmonthly_limit_requests != nil {
+		fields = append(fields, group.FieldMonthlyLimitRequests)
+	}
 	return fields
 }
 
@@ -11101,6 +11457,14 @@ func (m *GroupMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedFallbackGroupIDOnInvalidRequest()
 	case group.FieldSortOrder:
 		return m.AddedSortOrder()
+	case group.FieldPerRequestPrice:
+		return m.AddedPerRequestPrice()
+	case group.FieldDailyLimitRequests:
+		return m.AddedDailyLimitRequests()
+	case group.FieldWeeklyLimitRequests:
+		return m.AddedWeeklyLimitRequests()
+	case group.FieldMonthlyLimitRequests:
+		return m.AddedMonthlyLimitRequests()
 	}
 	return nil, false
 }
@@ -11222,6 +11586,34 @@ func (m *GroupMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddSortOrder(v)
 		return nil
+	case group.FieldPerRequestPrice:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPerRequestPrice(v)
+		return nil
+	case group.FieldDailyLimitRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDailyLimitRequests(v)
+		return nil
+	case group.FieldWeeklyLimitRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWeeklyLimitRequests(v)
+		return nil
+	case group.FieldMonthlyLimitRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMonthlyLimitRequests(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Group numeric field %s", name)
 }
@@ -11274,6 +11666,18 @@ func (m *GroupMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(group.FieldModelRouting) {
 		fields = append(fields, group.FieldModelRouting)
+	}
+	if m.FieldCleared(group.FieldPerRequestPrice) {
+		fields = append(fields, group.FieldPerRequestPrice)
+	}
+	if m.FieldCleared(group.FieldDailyLimitRequests) {
+		fields = append(fields, group.FieldDailyLimitRequests)
+	}
+	if m.FieldCleared(group.FieldWeeklyLimitRequests) {
+		fields = append(fields, group.FieldWeeklyLimitRequests)
+	}
+	if m.FieldCleared(group.FieldMonthlyLimitRequests) {
+		fields = append(fields, group.FieldMonthlyLimitRequests)
 	}
 	return fields
 }
@@ -11333,6 +11737,18 @@ func (m *GroupMutation) ClearField(name string) error {
 		return nil
 	case group.FieldModelRouting:
 		m.ClearModelRouting()
+		return nil
+	case group.FieldPerRequestPrice:
+		m.ClearPerRequestPrice()
+		return nil
+	case group.FieldDailyLimitRequests:
+		m.ClearDailyLimitRequests()
+		return nil
+	case group.FieldWeeklyLimitRequests:
+		m.ClearWeeklyLimitRequests()
+		return nil
+	case group.FieldMonthlyLimitRequests:
+		m.ClearMonthlyLimitRequests()
 		return nil
 	}
 	return fmt.Errorf("unknown Group nullable field %s", name)
@@ -11443,6 +11859,18 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldDefaultMappedModel:
 		m.ResetDefaultMappedModel()
+		return nil
+	case group.FieldPerRequestPrice:
+		m.ResetPerRequestPrice()
+		return nil
+	case group.FieldDailyLimitRequests:
+		m.ResetDailyLimitRequests()
+		return nil
+	case group.FieldWeeklyLimitRequests:
+		m.ResetWeeklyLimitRequests()
+		return nil
+	case group.FieldMonthlyLimitRequests:
+		m.ResetMonthlyLimitRequests()
 		return nil
 	}
 	return fmt.Errorf("unknown Group field %s", name)
@@ -27180,39 +27608,45 @@ func (m *UserAttributeValueMutation) ResetEdge(name string) error {
 // UserSubscriptionMutation represents an operation that mutates the UserSubscription nodes in the graph.
 type UserSubscriptionMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *int64
-	created_at              *time.Time
-	updated_at              *time.Time
-	deleted_at              *time.Time
-	starts_at               *time.Time
-	expires_at              *time.Time
-	status                  *string
-	daily_window_start      *time.Time
-	weekly_window_start     *time.Time
-	monthly_window_start    *time.Time
-	daily_usage_usd         *float64
-	adddaily_usage_usd      *float64
-	weekly_usage_usd        *float64
-	addweekly_usage_usd     *float64
-	monthly_usage_usd       *float64
-	addmonthly_usage_usd    *float64
-	assigned_at             *time.Time
-	notes                   *string
-	clearedFields           map[string]struct{}
-	user                    *int64
-	cleareduser             bool
-	group                   *int64
-	clearedgroup            bool
-	assigned_by_user        *int64
-	clearedassigned_by_user bool
-	usage_logs              map[int64]struct{}
-	removedusage_logs       map[int64]struct{}
-	clearedusage_logs       bool
-	done                    bool
-	oldValue                func(context.Context) (*UserSubscription, error)
-	predicates              []predicate.UserSubscription
+	op                        Op
+	typ                       string
+	id                        *int64
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	starts_at                 *time.Time
+	expires_at                *time.Time
+	status                    *string
+	daily_window_start        *time.Time
+	weekly_window_start       *time.Time
+	monthly_window_start      *time.Time
+	daily_usage_usd           *float64
+	adddaily_usage_usd        *float64
+	weekly_usage_usd          *float64
+	addweekly_usage_usd       *float64
+	monthly_usage_usd         *float64
+	addmonthly_usage_usd      *float64
+	daily_usage_requests      *int64
+	adddaily_usage_requests   *int64
+	weekly_usage_requests     *int64
+	addweekly_usage_requests  *int64
+	monthly_usage_requests    *int64
+	addmonthly_usage_requests *int64
+	assigned_at               *time.Time
+	notes                     *string
+	clearedFields             map[string]struct{}
+	user                      *int64
+	cleareduser               bool
+	group                     *int64
+	clearedgroup              bool
+	assigned_by_user          *int64
+	clearedassigned_by_user   bool
+	usage_logs                map[int64]struct{}
+	removedusage_logs         map[int64]struct{}
+	clearedusage_logs         bool
+	done                      bool
+	oldValue                  func(context.Context) (*UserSubscription, error)
+	predicates                []predicate.UserSubscription
 }
 
 var _ ent.Mutation = (*UserSubscriptionMutation)(nil)
@@ -27929,6 +28363,174 @@ func (m *UserSubscriptionMutation) ResetMonthlyUsageUsd() {
 	m.addmonthly_usage_usd = nil
 }
 
+// SetDailyUsageRequests sets the "daily_usage_requests" field.
+func (m *UserSubscriptionMutation) SetDailyUsageRequests(i int64) {
+	m.daily_usage_requests = &i
+	m.adddaily_usage_requests = nil
+}
+
+// DailyUsageRequests returns the value of the "daily_usage_requests" field in the mutation.
+func (m *UserSubscriptionMutation) DailyUsageRequests() (r int64, exists bool) {
+	v := m.daily_usage_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDailyUsageRequests returns the old "daily_usage_requests" field's value of the UserSubscription entity.
+// If the UserSubscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserSubscriptionMutation) OldDailyUsageRequests(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDailyUsageRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDailyUsageRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDailyUsageRequests: %w", err)
+	}
+	return oldValue.DailyUsageRequests, nil
+}
+
+// AddDailyUsageRequests adds i to the "daily_usage_requests" field.
+func (m *UserSubscriptionMutation) AddDailyUsageRequests(i int64) {
+	if m.adddaily_usage_requests != nil {
+		*m.adddaily_usage_requests += i
+	} else {
+		m.adddaily_usage_requests = &i
+	}
+}
+
+// AddedDailyUsageRequests returns the value that was added to the "daily_usage_requests" field in this mutation.
+func (m *UserSubscriptionMutation) AddedDailyUsageRequests() (r int64, exists bool) {
+	v := m.adddaily_usage_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDailyUsageRequests resets all changes to the "daily_usage_requests" field.
+func (m *UserSubscriptionMutation) ResetDailyUsageRequests() {
+	m.daily_usage_requests = nil
+	m.adddaily_usage_requests = nil
+}
+
+// SetWeeklyUsageRequests sets the "weekly_usage_requests" field.
+func (m *UserSubscriptionMutation) SetWeeklyUsageRequests(i int64) {
+	m.weekly_usage_requests = &i
+	m.addweekly_usage_requests = nil
+}
+
+// WeeklyUsageRequests returns the value of the "weekly_usage_requests" field in the mutation.
+func (m *UserSubscriptionMutation) WeeklyUsageRequests() (r int64, exists bool) {
+	v := m.weekly_usage_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWeeklyUsageRequests returns the old "weekly_usage_requests" field's value of the UserSubscription entity.
+// If the UserSubscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserSubscriptionMutation) OldWeeklyUsageRequests(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWeeklyUsageRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWeeklyUsageRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWeeklyUsageRequests: %w", err)
+	}
+	return oldValue.WeeklyUsageRequests, nil
+}
+
+// AddWeeklyUsageRequests adds i to the "weekly_usage_requests" field.
+func (m *UserSubscriptionMutation) AddWeeklyUsageRequests(i int64) {
+	if m.addweekly_usage_requests != nil {
+		*m.addweekly_usage_requests += i
+	} else {
+		m.addweekly_usage_requests = &i
+	}
+}
+
+// AddedWeeklyUsageRequests returns the value that was added to the "weekly_usage_requests" field in this mutation.
+func (m *UserSubscriptionMutation) AddedWeeklyUsageRequests() (r int64, exists bool) {
+	v := m.addweekly_usage_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWeeklyUsageRequests resets all changes to the "weekly_usage_requests" field.
+func (m *UserSubscriptionMutation) ResetWeeklyUsageRequests() {
+	m.weekly_usage_requests = nil
+	m.addweekly_usage_requests = nil
+}
+
+// SetMonthlyUsageRequests sets the "monthly_usage_requests" field.
+func (m *UserSubscriptionMutation) SetMonthlyUsageRequests(i int64) {
+	m.monthly_usage_requests = &i
+	m.addmonthly_usage_requests = nil
+}
+
+// MonthlyUsageRequests returns the value of the "monthly_usage_requests" field in the mutation.
+func (m *UserSubscriptionMutation) MonthlyUsageRequests() (r int64, exists bool) {
+	v := m.monthly_usage_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMonthlyUsageRequests returns the old "monthly_usage_requests" field's value of the UserSubscription entity.
+// If the UserSubscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserSubscriptionMutation) OldMonthlyUsageRequests(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMonthlyUsageRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMonthlyUsageRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMonthlyUsageRequests: %w", err)
+	}
+	return oldValue.MonthlyUsageRequests, nil
+}
+
+// AddMonthlyUsageRequests adds i to the "monthly_usage_requests" field.
+func (m *UserSubscriptionMutation) AddMonthlyUsageRequests(i int64) {
+	if m.addmonthly_usage_requests != nil {
+		*m.addmonthly_usage_requests += i
+	} else {
+		m.addmonthly_usage_requests = &i
+	}
+}
+
+// AddedMonthlyUsageRequests returns the value that was added to the "monthly_usage_requests" field in this mutation.
+func (m *UserSubscriptionMutation) AddedMonthlyUsageRequests() (r int64, exists bool) {
+	v := m.addmonthly_usage_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMonthlyUsageRequests resets all changes to the "monthly_usage_requests" field.
+func (m *UserSubscriptionMutation) ResetMonthlyUsageRequests() {
+	m.monthly_usage_requests = nil
+	m.addmonthly_usage_requests = nil
+}
+
 // SetAssignedBy sets the "assigned_by" field.
 func (m *UserSubscriptionMutation) SetAssignedBy(i int64) {
 	m.assigned_by_user = &i
@@ -28245,7 +28847,7 @@ func (m *UserSubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserSubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 20)
 	if m.created_at != nil {
 		fields = append(fields, usersubscription.FieldCreatedAt)
 	}
@@ -28287,6 +28889,15 @@ func (m *UserSubscriptionMutation) Fields() []string {
 	}
 	if m.monthly_usage_usd != nil {
 		fields = append(fields, usersubscription.FieldMonthlyUsageUsd)
+	}
+	if m.daily_usage_requests != nil {
+		fields = append(fields, usersubscription.FieldDailyUsageRequests)
+	}
+	if m.weekly_usage_requests != nil {
+		fields = append(fields, usersubscription.FieldWeeklyUsageRequests)
+	}
+	if m.monthly_usage_requests != nil {
+		fields = append(fields, usersubscription.FieldMonthlyUsageRequests)
 	}
 	if m.assigned_by_user != nil {
 		fields = append(fields, usersubscription.FieldAssignedBy)
@@ -28333,6 +28944,12 @@ func (m *UserSubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.WeeklyUsageUsd()
 	case usersubscription.FieldMonthlyUsageUsd:
 		return m.MonthlyUsageUsd()
+	case usersubscription.FieldDailyUsageRequests:
+		return m.DailyUsageRequests()
+	case usersubscription.FieldWeeklyUsageRequests:
+		return m.WeeklyUsageRequests()
+	case usersubscription.FieldMonthlyUsageRequests:
+		return m.MonthlyUsageRequests()
 	case usersubscription.FieldAssignedBy:
 		return m.AssignedBy()
 	case usersubscription.FieldAssignedAt:
@@ -28376,6 +28993,12 @@ func (m *UserSubscriptionMutation) OldField(ctx context.Context, name string) (e
 		return m.OldWeeklyUsageUsd(ctx)
 	case usersubscription.FieldMonthlyUsageUsd:
 		return m.OldMonthlyUsageUsd(ctx)
+	case usersubscription.FieldDailyUsageRequests:
+		return m.OldDailyUsageRequests(ctx)
+	case usersubscription.FieldWeeklyUsageRequests:
+		return m.OldWeeklyUsageRequests(ctx)
+	case usersubscription.FieldMonthlyUsageRequests:
+		return m.OldMonthlyUsageRequests(ctx)
 	case usersubscription.FieldAssignedBy:
 		return m.OldAssignedBy(ctx)
 	case usersubscription.FieldAssignedAt:
@@ -28489,6 +29112,27 @@ func (m *UserSubscriptionMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetMonthlyUsageUsd(v)
 		return nil
+	case usersubscription.FieldDailyUsageRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDailyUsageRequests(v)
+		return nil
+	case usersubscription.FieldWeeklyUsageRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeeklyUsageRequests(v)
+		return nil
+	case usersubscription.FieldMonthlyUsageRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMonthlyUsageRequests(v)
+		return nil
 	case usersubscription.FieldAssignedBy:
 		v, ok := value.(int64)
 		if !ok {
@@ -28527,6 +29171,15 @@ func (m *UserSubscriptionMutation) AddedFields() []string {
 	if m.addmonthly_usage_usd != nil {
 		fields = append(fields, usersubscription.FieldMonthlyUsageUsd)
 	}
+	if m.adddaily_usage_requests != nil {
+		fields = append(fields, usersubscription.FieldDailyUsageRequests)
+	}
+	if m.addweekly_usage_requests != nil {
+		fields = append(fields, usersubscription.FieldWeeklyUsageRequests)
+	}
+	if m.addmonthly_usage_requests != nil {
+		fields = append(fields, usersubscription.FieldMonthlyUsageRequests)
+	}
 	return fields
 }
 
@@ -28541,6 +29194,12 @@ func (m *UserSubscriptionMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedWeeklyUsageUsd()
 	case usersubscription.FieldMonthlyUsageUsd:
 		return m.AddedMonthlyUsageUsd()
+	case usersubscription.FieldDailyUsageRequests:
+		return m.AddedDailyUsageRequests()
+	case usersubscription.FieldWeeklyUsageRequests:
+		return m.AddedWeeklyUsageRequests()
+	case usersubscription.FieldMonthlyUsageRequests:
+		return m.AddedMonthlyUsageRequests()
 	}
 	return nil, false
 }
@@ -28570,6 +29229,27 @@ func (m *UserSubscriptionMutation) AddField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddMonthlyUsageUsd(v)
+		return nil
+	case usersubscription.FieldDailyUsageRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDailyUsageRequests(v)
+		return nil
+	case usersubscription.FieldWeeklyUsageRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWeeklyUsageRequests(v)
+		return nil
+	case usersubscription.FieldMonthlyUsageRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMonthlyUsageRequests(v)
 		return nil
 	}
 	return fmt.Errorf("unknown UserSubscription numeric field %s", name)
@@ -28678,6 +29358,15 @@ func (m *UserSubscriptionMutation) ResetField(name string) error {
 		return nil
 	case usersubscription.FieldMonthlyUsageUsd:
 		m.ResetMonthlyUsageUsd()
+		return nil
+	case usersubscription.FieldDailyUsageRequests:
+		m.ResetDailyUsageRequests()
+		return nil
+	case usersubscription.FieldWeeklyUsageRequests:
+		m.ResetWeeklyUsageRequests()
+		return nil
+	case usersubscription.FieldMonthlyUsageRequests:
+		m.ResetMonthlyUsageRequests()
 		return nil
 	case usersubscription.FieldAssignedBy:
 		m.ResetAssignedBy()

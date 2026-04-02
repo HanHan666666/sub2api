@@ -69,6 +69,17 @@ func (UserSubscription) Fields() []ent.Field {
 			SchemaType(map[string]string{dialect.Postgres: "decimal(20,10)"}).
 			Default(0),
 
+		// 按请求次数追踪的用量字段 (added by migration 082)
+		field.Int64("daily_usage_requests").
+			Default(0).
+			Comment("当前日窗口已用请求次数"),
+		field.Int64("weekly_usage_requests").
+			Default(0).
+			Comment("当前周窗口已用请求次数"),
+		field.Int64("monthly_usage_requests").
+			Default(0).
+			Comment("当前月窗口已用请求次数"),
+
 		field.Int64("assigned_by").
 			Optional().
 			Nillable(),

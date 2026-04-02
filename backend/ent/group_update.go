@@ -681,6 +681,114 @@ func (_u *GroupUpdate) SetNillableDefaultMappedModel(v *string) *GroupUpdate {
 	return _u
 }
 
+// SetPerRequestPrice sets the "per_request_price" field.
+func (_u *GroupUpdate) SetPerRequestPrice(v float64) *GroupUpdate {
+	_u.mutation.ResetPerRequestPrice()
+	_u.mutation.SetPerRequestPrice(v)
+	return _u
+}
+
+// SetNillablePerRequestPrice sets the "per_request_price" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillablePerRequestPrice(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetPerRequestPrice(*v)
+	}
+	return _u
+}
+
+// AddPerRequestPrice adds value to the "per_request_price" field.
+func (_u *GroupUpdate) AddPerRequestPrice(v float64) *GroupUpdate {
+	_u.mutation.AddPerRequestPrice(v)
+	return _u
+}
+
+// ClearPerRequestPrice clears the value of the "per_request_price" field.
+func (_u *GroupUpdate) ClearPerRequestPrice() *GroupUpdate {
+	_u.mutation.ClearPerRequestPrice()
+	return _u
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (_u *GroupUpdate) SetDailyLimitRequests(v int64) *GroupUpdate {
+	_u.mutation.ResetDailyLimitRequests()
+	_u.mutation.SetDailyLimitRequests(v)
+	return _u
+}
+
+// SetNillableDailyLimitRequests sets the "daily_limit_requests" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDailyLimitRequests(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetDailyLimitRequests(*v)
+	}
+	return _u
+}
+
+// AddDailyLimitRequests adds value to the "daily_limit_requests" field.
+func (_u *GroupUpdate) AddDailyLimitRequests(v int64) *GroupUpdate {
+	_u.mutation.AddDailyLimitRequests(v)
+	return _u
+}
+
+// ClearDailyLimitRequests clears the value of the "daily_limit_requests" field.
+func (_u *GroupUpdate) ClearDailyLimitRequests() *GroupUpdate {
+	_u.mutation.ClearDailyLimitRequests()
+	return _u
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (_u *GroupUpdate) SetWeeklyLimitRequests(v int64) *GroupUpdate {
+	_u.mutation.ResetWeeklyLimitRequests()
+	_u.mutation.SetWeeklyLimitRequests(v)
+	return _u
+}
+
+// SetNillableWeeklyLimitRequests sets the "weekly_limit_requests" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableWeeklyLimitRequests(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetWeeklyLimitRequests(*v)
+	}
+	return _u
+}
+
+// AddWeeklyLimitRequests adds value to the "weekly_limit_requests" field.
+func (_u *GroupUpdate) AddWeeklyLimitRequests(v int64) *GroupUpdate {
+	_u.mutation.AddWeeklyLimitRequests(v)
+	return _u
+}
+
+// ClearWeeklyLimitRequests clears the value of the "weekly_limit_requests" field.
+func (_u *GroupUpdate) ClearWeeklyLimitRequests() *GroupUpdate {
+	_u.mutation.ClearWeeklyLimitRequests()
+	return _u
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (_u *GroupUpdate) SetMonthlyLimitRequests(v int64) *GroupUpdate {
+	_u.mutation.ResetMonthlyLimitRequests()
+	_u.mutation.SetMonthlyLimitRequests(v)
+	return _u
+}
+
+// SetNillableMonthlyLimitRequests sets the "monthly_limit_requests" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableMonthlyLimitRequests(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetMonthlyLimitRequests(*v)
+	}
+	return _u
+}
+
+// AddMonthlyLimitRequests adds value to the "monthly_limit_requests" field.
+func (_u *GroupUpdate) AddMonthlyLimitRequests(v int64) *GroupUpdate {
+	_u.mutation.AddMonthlyLimitRequests(v)
+	return _u
+}
+
+// ClearMonthlyLimitRequests clears the value of the "monthly_limit_requests" field.
+func (_u *GroupUpdate) ClearMonthlyLimitRequests() *GroupUpdate {
+	_u.mutation.ClearMonthlyLimitRequests()
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdate) AddAPIKeyIDs(ids ...int64) *GroupUpdate {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -1182,6 +1290,42 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.DefaultMappedModel(); ok {
 		_spec.SetField(group.FieldDefaultMappedModel, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PerRequestPrice(); ok {
+		_spec.SetField(group.FieldPerRequestPrice, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedPerRequestPrice(); ok {
+		_spec.AddField(group.FieldPerRequestPrice, field.TypeFloat64, value)
+	}
+	if _u.mutation.PerRequestPriceCleared() {
+		_spec.ClearField(group.FieldPerRequestPrice, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.DailyLimitRequests(); ok {
+		_spec.SetField(group.FieldDailyLimitRequests, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDailyLimitRequests(); ok {
+		_spec.AddField(group.FieldDailyLimitRequests, field.TypeInt64, value)
+	}
+	if _u.mutation.DailyLimitRequestsCleared() {
+		_spec.ClearField(group.FieldDailyLimitRequests, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.WeeklyLimitRequests(); ok {
+		_spec.SetField(group.FieldWeeklyLimitRequests, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedWeeklyLimitRequests(); ok {
+		_spec.AddField(group.FieldWeeklyLimitRequests, field.TypeInt64, value)
+	}
+	if _u.mutation.WeeklyLimitRequestsCleared() {
+		_spec.ClearField(group.FieldWeeklyLimitRequests, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.MonthlyLimitRequests(); ok {
+		_spec.SetField(group.FieldMonthlyLimitRequests, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedMonthlyLimitRequests(); ok {
+		_spec.AddField(group.FieldMonthlyLimitRequests, field.TypeInt64, value)
+	}
+	if _u.mutation.MonthlyLimitRequestsCleared() {
+		_spec.ClearField(group.FieldMonthlyLimitRequests, field.TypeInt64)
 	}
 	if _u.mutation.APIKeysCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2143,6 +2287,114 @@ func (_u *GroupUpdateOne) SetNillableDefaultMappedModel(v *string) *GroupUpdateO
 	return _u
 }
 
+// SetPerRequestPrice sets the "per_request_price" field.
+func (_u *GroupUpdateOne) SetPerRequestPrice(v float64) *GroupUpdateOne {
+	_u.mutation.ResetPerRequestPrice()
+	_u.mutation.SetPerRequestPrice(v)
+	return _u
+}
+
+// SetNillablePerRequestPrice sets the "per_request_price" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillablePerRequestPrice(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetPerRequestPrice(*v)
+	}
+	return _u
+}
+
+// AddPerRequestPrice adds value to the "per_request_price" field.
+func (_u *GroupUpdateOne) AddPerRequestPrice(v float64) *GroupUpdateOne {
+	_u.mutation.AddPerRequestPrice(v)
+	return _u
+}
+
+// ClearPerRequestPrice clears the value of the "per_request_price" field.
+func (_u *GroupUpdateOne) ClearPerRequestPrice() *GroupUpdateOne {
+	_u.mutation.ClearPerRequestPrice()
+	return _u
+}
+
+// SetDailyLimitRequests sets the "daily_limit_requests" field.
+func (_u *GroupUpdateOne) SetDailyLimitRequests(v int64) *GroupUpdateOne {
+	_u.mutation.ResetDailyLimitRequests()
+	_u.mutation.SetDailyLimitRequests(v)
+	return _u
+}
+
+// SetNillableDailyLimitRequests sets the "daily_limit_requests" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDailyLimitRequests(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDailyLimitRequests(*v)
+	}
+	return _u
+}
+
+// AddDailyLimitRequests adds value to the "daily_limit_requests" field.
+func (_u *GroupUpdateOne) AddDailyLimitRequests(v int64) *GroupUpdateOne {
+	_u.mutation.AddDailyLimitRequests(v)
+	return _u
+}
+
+// ClearDailyLimitRequests clears the value of the "daily_limit_requests" field.
+func (_u *GroupUpdateOne) ClearDailyLimitRequests() *GroupUpdateOne {
+	_u.mutation.ClearDailyLimitRequests()
+	return _u
+}
+
+// SetWeeklyLimitRequests sets the "weekly_limit_requests" field.
+func (_u *GroupUpdateOne) SetWeeklyLimitRequests(v int64) *GroupUpdateOne {
+	_u.mutation.ResetWeeklyLimitRequests()
+	_u.mutation.SetWeeklyLimitRequests(v)
+	return _u
+}
+
+// SetNillableWeeklyLimitRequests sets the "weekly_limit_requests" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableWeeklyLimitRequests(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetWeeklyLimitRequests(*v)
+	}
+	return _u
+}
+
+// AddWeeklyLimitRequests adds value to the "weekly_limit_requests" field.
+func (_u *GroupUpdateOne) AddWeeklyLimitRequests(v int64) *GroupUpdateOne {
+	_u.mutation.AddWeeklyLimitRequests(v)
+	return _u
+}
+
+// ClearWeeklyLimitRequests clears the value of the "weekly_limit_requests" field.
+func (_u *GroupUpdateOne) ClearWeeklyLimitRequests() *GroupUpdateOne {
+	_u.mutation.ClearWeeklyLimitRequests()
+	return _u
+}
+
+// SetMonthlyLimitRequests sets the "monthly_limit_requests" field.
+func (_u *GroupUpdateOne) SetMonthlyLimitRequests(v int64) *GroupUpdateOne {
+	_u.mutation.ResetMonthlyLimitRequests()
+	_u.mutation.SetMonthlyLimitRequests(v)
+	return _u
+}
+
+// SetNillableMonthlyLimitRequests sets the "monthly_limit_requests" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableMonthlyLimitRequests(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetMonthlyLimitRequests(*v)
+	}
+	return _u
+}
+
+// AddMonthlyLimitRequests adds value to the "monthly_limit_requests" field.
+func (_u *GroupUpdateOne) AddMonthlyLimitRequests(v int64) *GroupUpdateOne {
+	_u.mutation.AddMonthlyLimitRequests(v)
+	return _u
+}
+
+// ClearMonthlyLimitRequests clears the value of the "monthly_limit_requests" field.
+func (_u *GroupUpdateOne) ClearMonthlyLimitRequests() *GroupUpdateOne {
+	_u.mutation.ClearMonthlyLimitRequests()
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdateOne) AddAPIKeyIDs(ids ...int64) *GroupUpdateOne {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -2674,6 +2926,42 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.DefaultMappedModel(); ok {
 		_spec.SetField(group.FieldDefaultMappedModel, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PerRequestPrice(); ok {
+		_spec.SetField(group.FieldPerRequestPrice, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedPerRequestPrice(); ok {
+		_spec.AddField(group.FieldPerRequestPrice, field.TypeFloat64, value)
+	}
+	if _u.mutation.PerRequestPriceCleared() {
+		_spec.ClearField(group.FieldPerRequestPrice, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.DailyLimitRequests(); ok {
+		_spec.SetField(group.FieldDailyLimitRequests, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDailyLimitRequests(); ok {
+		_spec.AddField(group.FieldDailyLimitRequests, field.TypeInt64, value)
+	}
+	if _u.mutation.DailyLimitRequestsCleared() {
+		_spec.ClearField(group.FieldDailyLimitRequests, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.WeeklyLimitRequests(); ok {
+		_spec.SetField(group.FieldWeeklyLimitRequests, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedWeeklyLimitRequests(); ok {
+		_spec.AddField(group.FieldWeeklyLimitRequests, field.TypeInt64, value)
+	}
+	if _u.mutation.WeeklyLimitRequestsCleared() {
+		_spec.ClearField(group.FieldWeeklyLimitRequests, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.MonthlyLimitRequests(); ok {
+		_spec.SetField(group.FieldMonthlyLimitRequests, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedMonthlyLimitRequests(); ok {
+		_spec.AddField(group.FieldMonthlyLimitRequests, field.TypeInt64, value)
+	}
+	if _u.mutation.MonthlyLimitRequestsCleared() {
+		_spec.ClearField(group.FieldMonthlyLimitRequests, field.TypeInt64)
 	}
 	if _u.mutation.APIKeysCleared() {
 		edge := &sqlgraph.EdgeSpec{

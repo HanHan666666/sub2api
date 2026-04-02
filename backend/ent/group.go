@@ -86,6 +86,14 @@ type Group struct {
 	RequirePrivacySet bool `json:"require_privacy_set,omitempty"`
 	// 默认映射模型 ID，当账号级映射找不到时使用此值
 	DefaultMappedModel string `json:"default_mapped_model,omitempty"`
+	// 按次计费单价（USD）
+	PerRequestPrice *float64 `json:"per_request_price,omitempty"`
+	// 每日请求次数限额
+	DailyLimitRequests *int64 `json:"daily_limit_requests,omitempty"`
+	// 每周请求次数限额
+	WeeklyLimitRequests *int64 `json:"weekly_limit_requests,omitempty"`
+	// 每月请求次数限额
+	MonthlyLimitRequests *int64 `json:"monthly_limit_requests,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GroupQuery when eager-loading is set.
 	Edges        GroupEdges `json:"edges"`
@@ -196,9 +204,9 @@ func (*Group) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case group.FieldIsExclusive, group.FieldClaudeCodeOnly, group.FieldModelRoutingEnabled, group.FieldMcpXMLInject, group.FieldAllowMessagesDispatch, group.FieldRequireOauthOnly, group.FieldRequirePrivacySet:
 			values[i] = new(sql.NullBool)
-		case group.FieldRateMultiplier, group.FieldDailyLimitUsd, group.FieldWeeklyLimitUsd, group.FieldMonthlyLimitUsd, group.FieldImagePrice1k, group.FieldImagePrice2k, group.FieldImagePrice4k, group.FieldSoraImagePrice360, group.FieldSoraImagePrice540, group.FieldSoraVideoPricePerRequest, group.FieldSoraVideoPricePerRequestHd:
+		case group.FieldRateMultiplier, group.FieldDailyLimitUsd, group.FieldWeeklyLimitUsd, group.FieldMonthlyLimitUsd, group.FieldImagePrice1k, group.FieldImagePrice2k, group.FieldImagePrice4k, group.FieldSoraImagePrice360, group.FieldSoraImagePrice540, group.FieldSoraVideoPricePerRequest, group.FieldSoraVideoPricePerRequestHd, group.FieldPerRequestPrice:
 			values[i] = new(sql.NullFloat64)
-		case group.FieldID, group.FieldDefaultValidityDays, group.FieldSoraStorageQuotaBytes, group.FieldFallbackGroupID, group.FieldFallbackGroupIDOnInvalidRequest, group.FieldSortOrder:
+		case group.FieldID, group.FieldDefaultValidityDays, group.FieldSoraStorageQuotaBytes, group.FieldFallbackGroupID, group.FieldFallbackGroupIDOnInvalidRequest, group.FieldSortOrder, group.FieldDailyLimitRequests, group.FieldWeeklyLimitRequests, group.FieldMonthlyLimitRequests:
 			values[i] = new(sql.NullInt64)
 		case group.FieldName, group.FieldDescription, group.FieldStatus, group.FieldPlatform, group.FieldSubscriptionType, group.FieldDefaultMappedModel:
 			values[i] = new(sql.NullString)
@@ -447,6 +455,34 @@ func (_m *Group) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DefaultMappedModel = value.String
 			}
+		case group.FieldPerRequestPrice:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field per_request_price", values[i])
+			} else if value.Valid {
+				_m.PerRequestPrice = new(float64)
+				*_m.PerRequestPrice = value.Float64
+			}
+		case group.FieldDailyLimitRequests:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field daily_limit_requests", values[i])
+			} else if value.Valid {
+				_m.DailyLimitRequests = new(int64)
+				*_m.DailyLimitRequests = value.Int64
+			}
+		case group.FieldWeeklyLimitRequests:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field weekly_limit_requests", values[i])
+			} else if value.Valid {
+				_m.WeeklyLimitRequests = new(int64)
+				*_m.WeeklyLimitRequests = value.Int64
+			}
+		case group.FieldMonthlyLimitRequests:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field monthly_limit_requests", values[i])
+			} else if value.Valid {
+				_m.MonthlyLimitRequests = new(int64)
+				*_m.MonthlyLimitRequests = value.Int64
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -652,6 +688,26 @@ func (_m *Group) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("default_mapped_model=")
 	builder.WriteString(_m.DefaultMappedModel)
+	builder.WriteString(", ")
+	if v := _m.PerRequestPrice; v != nil {
+		builder.WriteString("per_request_price=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.DailyLimitRequests; v != nil {
+		builder.WriteString("daily_limit_requests=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.WeeklyLimitRequests; v != nil {
+		builder.WriteString("weekly_limit_requests=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.MonthlyLimitRequests; v != nil {
+		builder.WriteString("monthly_limit_requests=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

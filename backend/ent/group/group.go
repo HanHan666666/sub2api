@@ -83,6 +83,14 @@ const (
 	FieldRequirePrivacySet = "require_privacy_set"
 	// FieldDefaultMappedModel holds the string denoting the default_mapped_model field in the database.
 	FieldDefaultMappedModel = "default_mapped_model"
+	// FieldPerRequestPrice holds the string denoting the per_request_price field in the database.
+	FieldPerRequestPrice = "per_request_price"
+	// FieldDailyLimitRequests holds the string denoting the daily_limit_requests field in the database.
+	FieldDailyLimitRequests = "daily_limit_requests"
+	// FieldWeeklyLimitRequests holds the string denoting the weekly_limit_requests field in the database.
+	FieldWeeklyLimitRequests = "weekly_limit_requests"
+	// FieldMonthlyLimitRequests holds the string denoting the monthly_limit_requests field in the database.
+	FieldMonthlyLimitRequests = "monthly_limit_requests"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
 	// EdgeRedeemCodes holds the string denoting the redeem_codes edge name in mutations.
@@ -192,6 +200,10 @@ var Columns = []string{
 	FieldRequireOauthOnly,
 	FieldRequirePrivacySet,
 	FieldDefaultMappedModel,
+	FieldPerRequestPrice,
+	FieldDailyLimitRequests,
+	FieldWeeklyLimitRequests,
+	FieldMonthlyLimitRequests,
 }
 
 var (
@@ -437,6 +449,26 @@ func ByRequirePrivacySet(opts ...sql.OrderTermOption) OrderOption {
 // ByDefaultMappedModel orders the results by the default_mapped_model field.
 func ByDefaultMappedModel(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDefaultMappedModel, opts...).ToFunc()
+}
+
+// ByPerRequestPrice orders the results by the per_request_price field.
+func ByPerRequestPrice(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPerRequestPrice, opts...).ToFunc()
+}
+
+// ByDailyLimitRequests orders the results by the daily_limit_requests field.
+func ByDailyLimitRequests(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailyLimitRequests, opts...).ToFunc()
+}
+
+// ByWeeklyLimitRequests orders the results by the weekly_limit_requests field.
+func ByWeeklyLimitRequests(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWeeklyLimitRequests, opts...).ToFunc()
+}
+
+// ByMonthlyLimitRequests orders the results by the monthly_limit_requests field.
+func ByMonthlyLimitRequests(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMonthlyLimitRequests, opts...).ToFunc()
 }
 
 // ByAPIKeysCount orders the results by api_keys count.
