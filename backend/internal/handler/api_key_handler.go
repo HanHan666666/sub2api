@@ -39,9 +39,14 @@ type CreateAPIKeyRequest struct {
 	ExpiresInDays *int     `json:"expires_in_days"` // 过期天数
 
 	// Rate limit fields (0 = unlimited)
-	RateLimit5h *float64 `json:"rate_limit_5h"`
-	RateLimit1d *float64 `json:"rate_limit_1d"`
-	RateLimit7d *float64 `json:"rate_limit_7d"`
+	RateLimit5h float64 `json:"rate_limit_5h"`
+	RateLimit1d float64 `json:"rate_limit_1d"`
+	RateLimit7d float64 `json:"rate_limit_7d"`
+
+	// Request count rate limit fields (nil = unlimited)
+	RateLimitRequests5h *int64 `json:"rate_limit_requests_5h"`
+	RateLimitRequests1d *int64 `json:"rate_limit_requests_1d"`
+	RateLimitRequests7d *int64 `json:"rate_limit_requests_7d"`
 }
 
 // UpdateAPIKeyRequest represents the update API key request payload
@@ -60,6 +65,12 @@ type UpdateAPIKeyRequest struct {
 	RateLimit1d         *float64 `json:"rate_limit_1d"`
 	RateLimit7d         *float64 `json:"rate_limit_7d"`
 	ResetRateLimitUsage *bool    `json:"reset_rate_limit_usage"` // 重置限速用量
+
+	// Request count rate limit fields (nil = no change)
+	RateLimitRequests5h   *int64 `json:"rate_limit_requests_5h"`
+	RateLimitRequests1d   *int64 `json:"rate_limit_requests_1d"`
+	RateLimitRequests7d   *int64 `json:"rate_limit_requests_7d"`
+	ResetRequestRateLimit *bool  `json:"reset_request_rate_limit"` // 重置请求次数限速用量
 }
 
 // List handles listing user's API keys with pagination
@@ -149,24 +160,21 @@ func (h *APIKeyHandler) Create(c *gin.Context) {
 	}
 
 	svcReq := service.CreateAPIKeyRequest{
-		Name:          req.Name,
-		GroupID:       req.GroupID,
-		CustomKey:     req.CustomKey,
-		IPWhitelist:   req.IPWhitelist,
-		IPBlacklist:   req.IPBlacklist,
-		ExpiresInDays: req.ExpiresInDays,
+		Name:                req.Name,
+		GroupID:             req.GroupID,
+		CustomKey:           req.CustomKey,
+		IPWhitelist:         req.IPWhitelist,
+		IPBlacklist:         req.IPBlacklist,
+		ExpiresInDays:       req.ExpiresInDays,
+		RateLimit5h:         req.RateLimit5h,
+		RateLimit1d:         req.RateLimit1d,
+		RateLimit7d:         req.RateLimit7d,
+		RateLimitRequests5h: req.RateLimitRequests5h,
+		RateLimitRequests1d: req.RateLimitRequests1d,
+		RateLimitRequests7d: req.RateLimitRequests7d,
 	}
 	if req.Quota != nil {
 		svcReq.Quota = *req.Quota
-	}
-	if req.RateLimit5h != nil {
-		svcReq.RateLimit5h = *req.RateLimit5h
-	}
-	if req.RateLimit1d != nil {
-		svcReq.RateLimit1d = *req.RateLimit1d
-	}
-	if req.RateLimit7d != nil {
-		svcReq.RateLimit7d = *req.RateLimit7d
 	}
 
 	executeUserIdempotentJSON(c, "user.api_keys.create", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
@@ -200,14 +208,18 @@ func (h *APIKeyHandler) Update(c *gin.Context) {
 	}
 
 	svcReq := service.UpdateAPIKeyRequest{
-		IPWhitelist:         req.IPWhitelist,
-		IPBlacklist:         req.IPBlacklist,
-		Quota:               req.Quota,
-		ResetQuota:          req.ResetQuota,
-		RateLimit5h:         req.RateLimit5h,
-		RateLimit1d:         req.RateLimit1d,
-		RateLimit7d:         req.RateLimit7d,
-		ResetRateLimitUsage: req.ResetRateLimitUsage,
+		IPWhitelist:            req.IPWhitelist,
+		IPBlacklist:            req.IPBlacklist,
+		Quota:                  req.Quota,
+		ResetQuota:             req.ResetQuota,
+		RateLimit5h:            req.RateLimit5h,
+		RateLimit1d:            req.RateLimit1d,
+		RateLimit7d:            req.RateLimit7d,
+		ResetRateLimitUsage:    req.ResetRateLimitUsage,
+		RateLimitRequests5h:    req.RateLimitRequests5h,
+		RateLimitRequests1d:    req.RateLimitRequests1d,
+		RateLimitRequests7d:    req.RateLimitRequests7d,
+		ResetRequestRateLimit:  req.ResetRequestRateLimit,
 	}
 	if req.Name != "" {
 		svcReq.Name = &req.Name

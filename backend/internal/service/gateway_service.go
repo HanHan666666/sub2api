@@ -7433,8 +7433,11 @@ type postUsageBillingParams struct {
 	APIKey                *APIKey
 	Account               *Account
 	Subscription          *UserSubscription
+	Group                 *Group // 按次计费分组信息
+	RequestCount          int64  // 按次计费请求次数（通常为1）
 	RequestPayloadHash    string
 	IsSubscriptionBill    bool
+	IsPerRequestBill      bool // 按次计费标识
 	AccountRateMultiplier float64
 	APIKeyService         APIKeyQuotaUpdater
 }
@@ -7450,8 +7453,20 @@ func postUsageBilling(ctx context.Context, p *postUsageBillingParams, deps *bill
 
 	cost := p.Cost
 
-	// 1. 订阅 / 余额扣费
-	if p.IsSubscriptionBill {
+	// 1. 订阅 / 余额扣费 / 按次计费
+	if p.IsPerRequestBill {
+		// 按次计费：可能同时涉及余额扣费和次数累加
+		if cost.ActualCost > 0 {
+			if err := deps.userRepo.DeductBalance(billingCtx, p.User.ID, cost.ActualCost); err != nil {
+				slog.Error("deduct balance failed", "user_id", p.User.ID, "error", err)
+			}
+		}
+		if p.RequestCount > 0 && p.Subscription != nil && p.Group != nil && p.Group.HasAnyRequestLimit() {
+			if err := deps.userSubRepo.IncrementRequestUsage(billingCtx, p.Subscription.ID, p.RequestCount); err != nil {
+				slog.Error("increment request usage failed", "subscription_id", p.Subscription.ID, "error", err)
+			}
+		}
+	} else if p.IsSubscriptionBill {
 		if cost.TotalCost > 0 {
 			if err := deps.userSubRepo.IncrementUsage(billingCtx, p.Subscription.ID, cost.TotalCost); err != nil {
 				slog.Error("increment subscription usage failed", "subscription_id", p.Subscription.ID, "error", err)
@@ -7557,7 +7572,16 @@ func buildUsageBillingCommand(requestID string, usageLog *UsageLog, p *postUsage
 		}
 	}
 
-	if p.IsSubscriptionBill && p.Subscription != nil && p.Cost.TotalCost > 0 {
+	if p.IsPerRequestBill {
+		// 按次计费：余额扣费 + 次数累加可同时发生
+		if p.Cost.ActualCost > 0 {
+			cmd.BalanceCost = p.Cost.ActualCost
+		}
+		if p.Subscription != nil && p.Group != nil && p.Group.HasAnyRequestLimit() && p.RequestCount > 0 {
+			cmd.SubscriptionID = &p.Subscription.ID
+			cmd.IncrementRequests = p.RequestCount
+		}
+	} else if p.IsSubscriptionBill && p.Subscription != nil && p.Cost.TotalCost > 0 {
 		cmd.SubscriptionID = &p.Subscription.ID
 		cmd.SubscriptionCost = p.Cost.TotalCost
 	} else if p.Cost.ActualCost > 0 {
@@ -7617,7 +7641,15 @@ func finalizePostUsageBilling(p *postUsageBillingParams, deps *billingDeps) {
 		return
 	}
 
-	if p.IsSubscriptionBill {
+	if p.IsPerRequestBill {
+		// 按次计费：刷新余额缓存 + 请求次数缓存
+		if p.Cost.ActualCost > 0 && p.User != nil {
+			deps.billingCacheService.QueueDeductBalance(p.User.ID, p.Cost.ActualCost)
+		}
+		if p.RequestCount > 0 && p.User != nil && p.APIKey != nil && p.APIKey.GroupID != nil && p.Group != nil && p.Group.HasAnyRequestLimit() {
+			deps.billingCacheService.QueueIncrementSubscriptionRequestUsage(p.User.ID, *p.APIKey.GroupID, p.RequestCount)
+		}
+	} else if p.IsSubscriptionBill {
 		if p.Cost.TotalCost > 0 && p.User != nil && p.APIKey != nil && p.APIKey.GroupID != nil {
 			deps.billingCacheService.QueueUpdateSubscriptionUsage(p.User.ID, *p.APIKey.GroupID, p.Cost.TotalCost)
 		}
@@ -7731,58 +7763,74 @@ func (s *GatewayService) RecordUsage(ctx context.Context, input *RecordUsageInpu
 	var cost *CostBreakdown
 	billingModel := forwardResultBillingModel(result.Model, result.UpstreamModel)
 
-	// 根据请求类型选择计费方式
-	if result.MediaType == "image" || result.MediaType == "video" {
-		var soraConfig *SoraPriceConfig
-		if apiKey.Group != nil {
-			soraConfig = &SoraPriceConfig{
-				ImagePrice360:          apiKey.Group.SoraImagePrice360,
-				ImagePrice540:          apiKey.Group.SoraImagePrice540,
-				VideoPricePerRequest:   apiKey.Group.SoraVideoPricePerRequest,
-				VideoPricePerRequestHD: apiKey.Group.SoraVideoPricePerRequestHD,
-			}
-		}
-		if result.MediaType == "image" {
-			cost = s.billingService.CalculateSoraImageCost(result.ImageSize, result.ImageCount, soraConfig, multiplier)
-		} else {
-			cost = s.billingService.CalculateSoraVideoCost(billingModel, soraConfig, multiplier)
-		}
-	} else if result.MediaType == "prompt" {
-		cost = &CostBreakdown{}
-	} else if result.ImageCount > 0 {
-		// 图片生成计费
-		var groupConfig *ImagePriceConfig
-		if apiKey.Group != nil {
-			groupConfig = &ImagePriceConfig{
-				Price1K: apiKey.Group.ImagePrice1K,
-				Price2K: apiKey.Group.ImagePrice2K,
-				Price4K: apiKey.Group.ImagePrice4K,
-			}
-		}
-		cost = s.billingService.CalculateImageCost(billingModel, result.ImageSize, result.ImageCount, groupConfig, multiplier)
-	} else {
-		// Token 计费
-		tokens := UsageTokens{
-			InputTokens:           result.Usage.InputTokens,
-			OutputTokens:          result.Usage.OutputTokens,
-			CacheCreationTokens:   result.Usage.CacheCreationInputTokens,
-			CacheReadTokens:       result.Usage.CacheReadInputTokens,
-			CacheCreation5mTokens: result.Usage.CacheCreation5mTokens,
-			CacheCreation1hTokens: result.Usage.CacheCreation1hTokens,
-		}
-		var err error
-		cost, err = s.billingService.CalculateCost(billingModel, tokens, multiplier)
-		if err != nil {
-			logger.LegacyPrintf("service.gateway", "Calculate cost failed: %v", err)
-			cost = &CostBreakdown{ActualCost: 0}
-		}
-	}
-
-	// 判断计费方式：订阅模式 vs 余额模式
+	// 判断计费类型
+	isPerRequestBilling := apiKey.Group != nil && apiKey.Group.IsPerRequestType()
 	isSubscriptionBilling := subscription != nil && apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
+	requestCount := int64(0)
 	billingType := BillingTypeBalance
-	if isSubscriptionBilling {
-		billingType = BillingTypeSubscription
+
+	// 按次计费模式优先处理
+	if isPerRequestBilling {
+		if apiKey.Group.HasPerRequestPrice() {
+			cost = s.billingService.CalculatePerRequestCost(*apiKey.Group.PerRequestPrice, multiplier)
+		} else {
+			// 无单价，费用为 0（仅次数限额模式）
+			cost = &CostBreakdown{TotalCost: 0, ActualCost: 0}
+		}
+		requestCount = 1
+		billingType = BillingTypePerRequest
+	} else {
+		// 根据请求类型选择计费方式
+		if result.MediaType == "image" || result.MediaType == "video" {
+			var soraConfig *SoraPriceConfig
+			if apiKey.Group != nil {
+				soraConfig = &SoraPriceConfig{
+					ImagePrice360:          apiKey.Group.SoraImagePrice360,
+					ImagePrice540:          apiKey.Group.SoraImagePrice540,
+					VideoPricePerRequest:   apiKey.Group.SoraVideoPricePerRequest,
+					VideoPricePerRequestHD: apiKey.Group.SoraVideoPricePerRequestHD,
+				}
+			}
+			if result.MediaType == "image" {
+				cost = s.billingService.CalculateSoraImageCost(result.ImageSize, result.ImageCount, soraConfig, multiplier)
+			} else {
+				cost = s.billingService.CalculateSoraVideoCost(billingModel, soraConfig, multiplier)
+			}
+		} else if result.MediaType == "prompt" {
+			cost = &CostBreakdown{}
+		} else if result.ImageCount > 0 {
+			// 图片生成计费
+			var groupConfig *ImagePriceConfig
+			if apiKey.Group != nil {
+				groupConfig = &ImagePriceConfig{
+					Price1K: apiKey.Group.ImagePrice1K,
+					Price2K: apiKey.Group.ImagePrice2K,
+					Price4K: apiKey.Group.ImagePrice4K,
+				}
+			}
+			cost = s.billingService.CalculateImageCost(billingModel, result.ImageSize, result.ImageCount, groupConfig, multiplier)
+		} else {
+			// Token 计费
+			tokens := UsageTokens{
+				InputTokens:           result.Usage.InputTokens,
+				OutputTokens:          result.Usage.OutputTokens,
+				CacheCreationTokens:   result.Usage.CacheCreationInputTokens,
+				CacheReadTokens:       result.Usage.CacheReadInputTokens,
+				CacheCreation5mTokens: result.Usage.CacheCreation5mTokens,
+				CacheCreation1hTokens: result.Usage.CacheCreation1hTokens,
+			}
+			var err error
+			cost, err = s.billingService.CalculateCost(billingModel, tokens, multiplier)
+			if err != nil {
+				logger.LegacyPrintf("service.gateway", "Calculate cost failed: %v", err)
+				cost = &CostBreakdown{ActualCost: 0}
+			}
+		}
+
+		// 设置计费类型
+		if isSubscriptionBilling {
+			billingType = BillingTypeSubscription
+		}
 	}
 
 	// 创建使用日志
@@ -7865,8 +7913,11 @@ func (s *GatewayService) RecordUsage(ctx context.Context, input *RecordUsageInpu
 			APIKey:                apiKey,
 			Account:               account,
 			Subscription:          subscription,
+			Group:                 apiKey.Group,
+			RequestCount:          requestCount,
 			RequestPayloadHash:    resolveUsageBillingPayloadFingerprint(ctx, input.RequestPayloadHash),
 			IsSubscriptionBill:    isSubscriptionBilling,
+			IsPerRequestBill:      isPerRequestBilling,
 			AccountRateMultiplier: accountRateMultiplier,
 			APIKeyService:         input.APIKeyService,
 		}, s.billingDeps(), s.usageBillingRepo)
@@ -7936,41 +7987,57 @@ func (s *GatewayService) RecordUsageWithLongContext(ctx context.Context, input *
 	var cost *CostBreakdown
 	billingModel := forwardResultBillingModel(result.Model, result.UpstreamModel)
 
-	// 根据请求类型选择计费方式
-	if result.ImageCount > 0 {
-		// 图片生成计费
-		var groupConfig *ImagePriceConfig
-		if apiKey.Group != nil {
-			groupConfig = &ImagePriceConfig{
-				Price1K: apiKey.Group.ImagePrice1K,
-				Price2K: apiKey.Group.ImagePrice2K,
-				Price4K: apiKey.Group.ImagePrice4K,
+	// 判断计费类型
+	isPerRequestBilling := apiKey.Group != nil && apiKey.Group.IsPerRequestType()
+	isSubscriptionBilling := subscription != nil && apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
+	requestCount := int64(0)
+	billingType := BillingTypeBalance
+
+	// 按次计费模式优先处理
+	if isPerRequestBilling {
+		if apiKey.Group.HasPerRequestPrice() {
+			cost = s.billingService.CalculatePerRequestCost(*apiKey.Group.PerRequestPrice, multiplier)
+		} else {
+			// 无单价，费用为 0（仅次数限额模式）
+			cost = &CostBreakdown{TotalCost: 0, ActualCost: 0}
+		}
+		requestCount = 1
+		billingType = BillingTypePerRequest
+	} else {
+		// 根据请求类型选择计费方式
+		if result.ImageCount > 0 {
+			// 图片生成计费
+			var groupConfig *ImagePriceConfig
+			if apiKey.Group != nil {
+				groupConfig = &ImagePriceConfig{
+					Price1K: apiKey.Group.ImagePrice1K,
+					Price2K: apiKey.Group.ImagePrice2K,
+					Price4K: apiKey.Group.ImagePrice4K,
+				}
+			}
+			cost = s.billingService.CalculateImageCost(billingModel, result.ImageSize, result.ImageCount, groupConfig, multiplier)
+		} else {
+			// Token 计费（使用长上下文计费方法）
+			tokens := UsageTokens{
+				InputTokens:           result.Usage.InputTokens,
+				OutputTokens:          result.Usage.OutputTokens,
+				CacheCreationTokens:   result.Usage.CacheCreationInputTokens,
+				CacheReadTokens:       result.Usage.CacheReadInputTokens,
+				CacheCreation5mTokens: result.Usage.CacheCreation5mTokens,
+				CacheCreation1hTokens: result.Usage.CacheCreation1hTokens,
+			}
+			var err error
+			cost, err = s.billingService.CalculateCostWithLongContext(billingModel, tokens, multiplier, input.LongContextThreshold, input.LongContextMultiplier)
+			if err != nil {
+				logger.LegacyPrintf("service.gateway", "Calculate cost failed: %v", err)
+				cost = &CostBreakdown{ActualCost: 0}
 			}
 		}
-		cost = s.billingService.CalculateImageCost(billingModel, result.ImageSize, result.ImageCount, groupConfig, multiplier)
-	} else {
-		// Token 计费（使用长上下文计费方法）
-		tokens := UsageTokens{
-			InputTokens:           result.Usage.InputTokens,
-			OutputTokens:          result.Usage.OutputTokens,
-			CacheCreationTokens:   result.Usage.CacheCreationInputTokens,
-			CacheReadTokens:       result.Usage.CacheReadInputTokens,
-			CacheCreation5mTokens: result.Usage.CacheCreation5mTokens,
-			CacheCreation1hTokens: result.Usage.CacheCreation1hTokens,
-		}
-		var err error
-		cost, err = s.billingService.CalculateCostWithLongContext(billingModel, tokens, multiplier, input.LongContextThreshold, input.LongContextMultiplier)
-		if err != nil {
-			logger.LegacyPrintf("service.gateway", "Calculate cost failed: %v", err)
-			cost = &CostBreakdown{ActualCost: 0}
-		}
-	}
 
-	// 判断计费方式：订阅模式 vs 余额模式
-	isSubscriptionBilling := subscription != nil && apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
-	billingType := BillingTypeBalance
-	if isSubscriptionBilling {
-		billingType = BillingTypeSubscription
+		// 设置计费类型
+		if isSubscriptionBilling {
+			billingType = BillingTypeSubscription
+		}
 	}
 
 	// 创建使用日志
@@ -8048,8 +8115,11 @@ func (s *GatewayService) RecordUsageWithLongContext(ctx context.Context, input *
 			APIKey:                apiKey,
 			Account:               account,
 			Subscription:          subscription,
+			Group:                 apiKey.Group,
+			RequestCount:          requestCount,
 			RequestPayloadHash:    resolveUsageBillingPayloadFingerprint(ctx, input.RequestPayloadHash),
 			IsSubscriptionBill:    isSubscriptionBilling,
+			IsPerRequestBill:      isPerRequestBilling,
 			AccountRateMultiplier: accountRateMultiplier,
 			APIKeyService:         input.APIKeyService,
 		}, s.billingDeps(), s.usageBillingRepo)

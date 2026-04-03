@@ -58,6 +58,7 @@ const (
 const (
 	SubscriptionTypeStandard     = "standard"     // 标准计费模式（按余额扣费）
 	SubscriptionTypeSubscription = "subscription" // 订阅模式（按限额控制）
+	SubscriptionTypePerRequest   = "per_request"  // 按请求次数计费
 )
 
 // Subscription status constants

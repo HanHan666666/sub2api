@@ -69,26 +69,68 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 			return
 		}
 
+		// 加载订阅（订阅模式或按次计费模式有限额时）
+		var subscription *service.UserSubscription
 		isSubscriptionType := apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
-		if isSubscriptionType && subscriptionService != nil {
-			subscription, err := subscriptionService.GetActiveSubscription(
+		isPerRequestWithLimits := apiKey.Group != nil && apiKey.Group.IsPerRequestType() && apiKey.Group.HasAnyRequestLimit()
+
+		if (isSubscriptionType || isPerRequestWithLimits) && subscriptionService != nil {
+			sub, subErr := subscriptionService.GetActiveSubscription(
 				c.Request.Context(),
 				apiKey.User.ID,
 				apiKey.Group.ID,
 			)
-			if err != nil {
+			if subErr != nil {
 				abortWithGoogleError(c, 403, "No active subscription found for this group")
 				return
 			}
+			subscription = sub
+		}
 
+		// 计费模式检查
+		if apiKey.Group != nil && apiKey.Group.IsPerRequestType() {
+			// 按次计费模式预检
+			hasPrice := apiKey.Group.HasPerRequestPrice()
+			hasLimit := apiKey.Group.HasAnyRequestLimit()
+
+			if !hasPrice && !hasLimit {
+				abortWithGoogleError(c, 403, "per_request group must have either per_request_price or at least one request limit configured")
+				return
+			}
+
+			// 1. 余额检查（如果有单价）
+			if hasPrice {
+				if apiKey.User.Balance < *apiKey.Group.PerRequestPrice {
+					abortWithGoogleError(c, 403, "Insufficient account balance")
+					return
+				}
+			}
+
+			// 2. 次数限额检查（如果有限额配置且有订阅）
+			if hasLimit {
+				if subscription == nil {
+					abortWithGoogleError(c, 403, "subscription is required for per_request mode with request limits")
+					return
+				}
+				needsMaintenance, validateErr := subscriptionService.ValidateAndCheckLimits(subscription, apiKey.Group)
+				if validateErr != nil {
+					status := mapBillingErrorToStatus(validateErr)
+					abortWithGoogleError(c, status, validateErr.Error())
+					return
+				}
+
+				c.Set(string(ContextKeySubscription), subscription)
+
+				if needsMaintenance {
+					maintenanceCopy := *subscription
+					subscriptionService.DoWindowMaintenance(&maintenanceCopy)
+				}
+			}
+		} else if subscription != nil {
+			// 订阅模式
 			needsMaintenance, err := subscriptionService.ValidateAndCheckLimits(subscription, apiKey.Group)
 			if err != nil {
-				status := 403
-				if errors.Is(err, service.ErrDailyLimitExceeded) ||
-					errors.Is(err, service.ErrWeeklyLimitExceeded) ||
-					errors.Is(err, service.ErrMonthlyLimitExceeded) {
-					status = 429
-				}
+				status := mapBillingErrorToStatus(err)
 				abortWithGoogleError(c, status, err.Error())
 				return
 			}
@@ -100,6 +142,7 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 				subscriptionService.DoWindowMaintenance(&maintenanceCopy)
 			}
 		} else {
+			// 余额模式
 			if apiKey.User.Balance <= 0 {
 				abortWithGoogleError(c, 403, "Insufficient account balance")
 				return
@@ -116,6 +159,34 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 		_ = apiKeyService.TouchLastUsed(c.Request.Context(), apiKey.ID)
 		c.Next()
 	}
+}
+
+// mapBillingErrorToStatus 映射计费错误到 HTTP 状态码
+// 统一处理 USD 限额错误和请求次数限额错误
+func mapBillingErrorToStatus(err error) int {
+	var reqLimitErr *service.RequestLimitExceededError
+
+	switch {
+	// USD 限额错误
+	case errors.Is(err, service.ErrDailyLimitExceeded),
+		errors.Is(err, service.ErrWeeklyLimitExceeded),
+		errors.Is(err, service.ErrMonthlyLimitExceeded),
+		// 请求次数限额错误
+		errors.Is(err, service.ErrDailyRequestLimitExceeded),
+		errors.Is(err, service.ErrWeeklyRequestLimitExceeded),
+		errors.Is(err, service.ErrMonthlyRequestLimitExceeded),
+		// 结构化请求次数错误
+		errors.As(err, &reqLimitErr):
+		return 429
+	default:
+		return 403
+	}
+}
+
+// mapPerRequestErrorToStatus 映射按次计费错误到 HTTP 状态码
+// Deprecated: 使用 mapBillingErrorToStatus 代替
+func mapPerRequestErrorToStatus(err error) int {
+	return mapBillingErrorToStatus(err)
 }
 
 // extractAPIKeyForGoogle extracts API key for Google/Gemini endpoints.

@@ -183,6 +183,12 @@ func (f fakeGoogleSubscriptionRepo) ResetMonthlyUsage(ctx context.Context, id in
 func (f fakeGoogleSubscriptionRepo) IncrementUsage(ctx context.Context, id int64, costUSD float64) error {
 	return errors.New("not implemented")
 }
+func (f fakeGoogleSubscriptionRepo) IncrementRequestUsage(ctx context.Context, subscriptionID int64, count int64) error {
+	return errors.New("not implemented")
+}
+func (f fakeGoogleSubscriptionRepo) AdjustRequestUsage(ctx context.Context, subscriptionID int64, input *service.AdminAdjustRequestUsageInput) error {
+	return errors.New("not implemented")
+}
 func (f fakeGoogleSubscriptionRepo) BatchUpdateExpiredStatus(ctx context.Context) (int64, error) {
 	return 0, errors.New("not implemented")
 }

@@ -17,19 +17,25 @@ import (
 // 错误定义
 // 注：ErrInsufficientBalance在redeem_service.go中定义
 // 注：ErrDailyLimitExceeded/ErrWeeklyLimitExceeded/ErrMonthlyLimitExceeded在subscription_service.go中定义
+// 注：ErrDailyRequestLimitExceeded/ErrWeeklyRequestLimitExceeded/ErrMonthlyRequestLimitExceeded在subscription_service.go中定义
 var (
 	ErrSubscriptionInvalid       = infraerrors.Forbidden("SUBSCRIPTION_INVALID", "subscription is invalid or expired")
 	ErrBillingServiceUnavailable = infraerrors.ServiceUnavailable("BILLING_SERVICE_ERROR", "Billing service temporarily unavailable. Please retry later.")
+	ErrGroupBillingConfigInvalid = infraerrors.Forbidden("GROUP_BILLING_CONFIG_INVALID", "per_request group must have either per_request_price or at least one request limit configured")
+	ErrSubscriptionRequired      = infraerrors.Forbidden("SUBSCRIPTION_REQUIRED", "subscription is required for per_request mode with request limits")
 )
 
 // subscriptionCacheData 订阅缓存数据结构（内部使用）
 type subscriptionCacheData struct {
-	Status       string
-	ExpiresAt    time.Time
-	DailyUsage   float64
-	WeeklyUsage  float64
-	MonthlyUsage float64
-	Version      int64
+	Status               string
+	ExpiresAt            time.Time
+	DailyUsage           float64
+	WeeklyUsage          float64
+	MonthlyUsage         float64
+	DailyUsageRequests   int64 // 按次计费：日请求次数用量
+	WeeklyUsageRequests  int64 // 按次计费：周请求次数用量
+	MonthlyUsageRequests int64 // 按次计费：月请求次数用量
+	Version              int64
 }
 
 // 缓存写入任务类型
@@ -41,6 +47,7 @@ const (
 	cacheWriteUpdateSubscriptionUsage
 	cacheWriteDeductBalance
 	cacheWriteUpdateRateLimitUsage
+	cacheWriteIncrementSubscriptionRequestUsage
 )
 
 // 异步缓存写入工作池配置
@@ -72,6 +79,7 @@ type cacheWriteTask struct {
 	apiKeyID         int64
 	balance          float64
 	amount           float64
+	requestCount     int64 // 按次计费请求次数增量
 	subscriptionData *subscriptionCacheData
 }
 
@@ -203,6 +211,12 @@ func (s *BillingCacheService) cacheWriteWorker(ch <-chan cacheWriteTask) {
 					logger.LegacyPrintf("service.billing_cache", "Warning: update rate limit usage cache failed for api key %d: %v", task.apiKeyID, err)
 				}
 			}
+		case cacheWriteIncrementSubscriptionRequestUsage:
+			if s.cache != nil {
+				if err := s.cache.IncrementSubscriptionRequestUsage(ctx, task.userID, task.groupID, task.requestCount); err != nil {
+					logger.LegacyPrintf("service.billing_cache", "Warning: increment subscription request usage cache failed for user %d group %d: %v", task.userID, task.groupID, err)
+				}
+			}
 		}
 		cancel()
 	}
@@ -221,6 +235,8 @@ func cacheWriteKindName(kind cacheWriteKind) string {
 		return "deduct_balance"
 	case cacheWriteUpdateRateLimitUsage:
 		return "update_rate_limit_usage"
+	case cacheWriteIncrementSubscriptionRequestUsage:
+		return "increment_subscription_request_usage"
 	default:
 		return "unknown"
 	}
@@ -405,23 +421,29 @@ func (s *BillingCacheService) GetSubscriptionStatus(ctx context.Context, userID,
 
 func (s *BillingCacheService) convertFromPortsData(data *SubscriptionCacheData) *subscriptionCacheData {
 	return &subscriptionCacheData{
-		Status:       data.Status,
-		ExpiresAt:    data.ExpiresAt,
-		DailyUsage:   data.DailyUsage,
-		WeeklyUsage:  data.WeeklyUsage,
-		MonthlyUsage: data.MonthlyUsage,
-		Version:      data.Version,
+		Status:               data.Status,
+		ExpiresAt:            data.ExpiresAt,
+		DailyUsage:           data.DailyUsage,
+		WeeklyUsage:          data.WeeklyUsage,
+		MonthlyUsage:         data.MonthlyUsage,
+		DailyUsageRequests:   data.DailyUsageRequests,
+		WeeklyUsageRequests:  data.WeeklyUsageRequests,
+		MonthlyUsageRequests: data.MonthlyUsageRequests,
+		Version:              data.Version,
 	}
 }
 
 func (s *BillingCacheService) convertToPortsData(data *subscriptionCacheData) *SubscriptionCacheData {
 	return &SubscriptionCacheData{
-		Status:       data.Status,
-		ExpiresAt:    data.ExpiresAt,
-		DailyUsage:   data.DailyUsage,
-		WeeklyUsage:  data.WeeklyUsage,
-		MonthlyUsage: data.MonthlyUsage,
-		Version:      data.Version,
+		Status:               data.Status,
+		ExpiresAt:            data.ExpiresAt,
+		DailyUsage:           data.DailyUsage,
+		WeeklyUsage:          data.WeeklyUsage,
+		MonthlyUsage:         data.MonthlyUsage,
+		DailyUsageRequests:   data.DailyUsageRequests,
+		WeeklyUsageRequests:  data.WeeklyUsageRequests,
+		MonthlyUsageRequests: data.MonthlyUsageRequests,
+		Version:              data.Version,
 	}
 }
 
@@ -433,12 +455,15 @@ func (s *BillingCacheService) getSubscriptionFromDB(ctx context.Context, userID,
 	}
 
 	return &subscriptionCacheData{
-		Status:       sub.Status,
-		ExpiresAt:    sub.ExpiresAt,
-		DailyUsage:   sub.DailyUsageUSD,
-		WeeklyUsage:  sub.WeeklyUsageUSD,
-		MonthlyUsage: sub.MonthlyUsageUSD,
-		Version:      sub.UpdatedAt.Unix(),
+		Status:               sub.Status,
+		ExpiresAt:            sub.ExpiresAt,
+		DailyUsage:           sub.DailyUsageUSD,
+		WeeklyUsage:          sub.WeeklyUsageUSD,
+		MonthlyUsage:         sub.MonthlyUsageUSD,
+		DailyUsageRequests:   sub.DailyUsageRequests,
+		WeeklyUsageRequests:  sub.WeeklyUsageRequests,
+		MonthlyUsageRequests: sub.MonthlyUsageRequests,
+		Version:              sub.UpdatedAt.Unix(),
 	}, nil
 }
 
@@ -478,6 +503,27 @@ func (s *BillingCacheService) QueueUpdateSubscriptionUsage(userID, groupID int64
 	defer cancel()
 	if err := s.UpdateSubscriptionUsage(ctx, userID, groupID, costUSD); err != nil {
 		logger.LegacyPrintf("service.billing_cache", "Warning: update subscription cache fallback failed for user %d group %d: %v", userID, groupID, err)
+	}
+}
+
+// QueueIncrementSubscriptionRequestUsage 异步累加订阅请求次数用量缓存
+func (s *BillingCacheService) QueueIncrementSubscriptionRequestUsage(userID, groupID int64, count int64) {
+	if s.cache == nil {
+		return
+	}
+	// 队列满时同步回退，确保请求次数及时更新。
+	if s.enqueueCacheWrite(cacheWriteTask{
+		kind:         cacheWriteIncrementSubscriptionRequestUsage,
+		userID:       userID,
+		groupID:      groupID,
+		requestCount: count,
+	}) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), cacheWriteTimeout)
+	defer cancel()
+	if err := s.cache.IncrementSubscriptionRequestUsage(ctx, userID, groupID, count); err != nil {
+		logger.LegacyPrintf("service.billing_cache", "Warning: increment subscription request usage cache fallback failed for user %d group %d: %v", userID, groupID, err)
 	}
 }
 
@@ -635,6 +681,7 @@ func (s *BillingCacheService) QueueUpdateAPIKeyRateLimitUsage(apiKeyID int64, co
 // CheckBillingEligibility 检查用户是否有资格发起请求
 // 余额模式：检查缓存余额 > 0
 // 订阅模式：检查缓存用量未超过限额（Group限额从参数传入）
+// 按次计费模式：检查余额（如果有单价）和次数限额（如果有限额配置且有订阅）
 func (s *BillingCacheService) CheckBillingEligibility(ctx context.Context, user *User, apiKey *APIKey, group *Group, subscription *UserSubscription) error {
 	// 简易模式：跳过所有计费检查
 	if s.cfg.RunMode == config.RunModeSimple {
@@ -645,9 +692,15 @@ func (s *BillingCacheService) CheckBillingEligibility(ctx context.Context, user 
 	}
 
 	// 判断计费模式
+	isPerRequestMode := group != nil && group.IsPerRequestType()
 	isSubscriptionMode := group != nil && group.IsSubscriptionType() && subscription != nil
 
-	if isSubscriptionMode {
+	if isPerRequestMode {
+		// 按次计费预检
+		if err := s.checkPerRequestEligibility(ctx, user.ID, group, subscription); err != nil {
+			return err
+		}
+	} else if isSubscriptionMode {
 		if err := s.checkSubscriptionEligibility(ctx, user.ID, group, subscription); err != nil {
 			return err
 		}
@@ -657,7 +710,7 @@ func (s *BillingCacheService) CheckBillingEligibility(ctx context.Context, user 
 		}
 	}
 
-	// Check API Key rate limits (applies to both billing modes)
+	// Check API Key rate limits (applies to all billing modes)
 	if apiKey != nil && apiKey.HasRateLimits() {
 		if err := s.checkAPIKeyRateLimits(ctx, apiKey); err != nil {
 			return err
@@ -724,6 +777,79 @@ func (s *BillingCacheService) checkSubscriptionEligibility(ctx context.Context, 
 
 	if group.HasMonthlyLimit() && subData.MonthlyUsage >= *group.MonthlyLimitUSD {
 		return ErrMonthlyLimitExceeded
+	}
+
+	return nil
+}
+
+// checkPerRequestEligibility 检查按次计费模式资格
+func (s *BillingCacheService) checkPerRequestEligibility(ctx context.Context, userID int64, group *Group, subscription *UserSubscription) error {
+	hasPrice := group.HasPerRequestPrice()
+	hasLimit := group.HasAnyRequestLimit()
+
+	// 空配置拒绝：per_request 模式必须配置单价或次数限额
+	if !hasPrice && !hasLimit {
+		return ErrGroupBillingConfigInvalid
+	}
+
+	// 1. 如果有单价，检查余额
+	if hasPrice {
+		balance, err := s.GetUserBalance(ctx, userID)
+		if err != nil {
+			if s.circuitBreaker != nil {
+				s.circuitBreaker.OnFailure(err)
+			}
+			logger.LegacyPrintf("service.billing_cache", "ALERT: billing balance check failed for user %d: %v", userID, err)
+			return ErrBillingServiceUnavailable.WithCause(err)
+		}
+		if s.circuitBreaker != nil {
+			s.circuitBreaker.OnSuccess()
+		}
+
+		if balance < *group.PerRequestPrice {
+			return ErrInsufficientBalance
+		}
+	}
+
+	// 2. 如果有次数限额，检查订阅次数用量
+	if hasLimit {
+		if subscription == nil {
+			return ErrSubscriptionRequired
+		}
+
+		// 获取订阅缓存数据
+		subData, err := s.GetSubscriptionStatus(ctx, userID, group.ID)
+		if err != nil {
+			if s.circuitBreaker != nil {
+				s.circuitBreaker.OnFailure(err)
+			}
+			logger.LegacyPrintf("service.billing_cache", "ALERT: billing per_request subscription check failed for user %d group %d: %v", userID, group.ID, err)
+			return ErrBillingServiceUnavailable.WithCause(err)
+		}
+		if s.circuitBreaker != nil {
+			s.circuitBreaker.OnSuccess()
+		}
+
+		// 检查订阅状态
+		if subData.Status != SubscriptionStatusActive {
+			return ErrSubscriptionInvalid
+		}
+
+		// 检查是否过期
+		if time.Now().After(subData.ExpiresAt) {
+			return ErrSubscriptionInvalid
+		}
+
+		// 检查次数限额
+		if group.HasDailyLimitRequests() && subData.DailyUsageRequests >= *group.DailyLimitRequests {
+			return ErrDailyRequestLimitExceeded
+		}
+		if group.HasWeeklyLimitRequests() && subData.WeeklyUsageRequests >= *group.WeeklyLimitRequests {
+			return ErrWeeklyRequestLimitExceeded
+		}
+		if group.HasMonthlyLimitRequests() && subData.MonthlyUsageRequests >= *group.MonthlyLimitRequests {
+			return ErrMonthlyRequestLimitExceeded
+		}
 	}
 
 	return nil

@@ -428,10 +428,10 @@ const showResultDialog = ref(false)
 const generatedCodes = ref<RedeemCode[]>([])
 const subscriptionGroups = ref<Group[]>([])
 
-// 订阅类型分组选项
+// 订阅类型分组选项（包含 subscription 和 per_request 类型）
 const subscriptionGroupOptions = computed(() => {
   return subscriptionGroups.value
-    .filter((g) => g.subscription_type === 'subscription')
+    .filter((g) => g.subscription_type === 'subscription' || g.subscription_type === 'per_request')
     .map((g) => ({
       value: g.id,
       label: g.name,

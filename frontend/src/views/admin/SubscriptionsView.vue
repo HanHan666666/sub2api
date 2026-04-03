@@ -339,6 +339,41 @@
             </div>
           </template>
 
+          <template #cell-request_usage="{ row }">
+            <div class="min-w-[200px] space-y-1 text-sm">
+              <!-- Only show for per_request type -->
+              <template v-if="row.group?.subscription_type === 'per_request'">
+                <div v-if="row.group?.daily_limit_requests" class="flex items-center justify-between">
+                  <span class="text-gray-500 dark:text-dark-400">{{ t('admin.subscriptions.daily') }}</span>
+                  <span class="font-medium text-gray-700 dark:text-gray-300">
+                    {{ row.daily_usage_requests || 0 }} / {{ row.group.daily_limit_requests }}
+                  </span>
+                </div>
+                <div v-if="row.group?.weekly_limit_requests" class="flex items-center justify-between">
+                  <span class="text-gray-500 dark:text-dark-400">{{ t('admin.subscriptions.weekly') }}</span>
+                  <span class="font-medium text-gray-700 dark:text-gray-300">
+                    {{ row.weekly_usage_requests || 0 }} / {{ row.group.weekly_limit_requests }}
+                  </span>
+                </div>
+                <div v-if="row.group?.monthly_limit_requests" class="flex items-center justify-between">
+                  <span class="text-gray-500 dark:text-dark-400">{{ t('admin.subscriptions.monthly') }}</span>
+                  <span class="font-medium text-gray-700 dark:text-gray-300">
+                    {{ row.monthly_usage_requests || 0 }} / {{ row.group.monthly_limit_requests }}
+                  </span>
+                </div>
+                <!-- No request limits -->
+                <div
+                  v-if="!row.group?.daily_limit_requests && !row.group?.weekly_limit_requests && !row.group?.monthly_limit_requests"
+                  class="text-gray-400 dark:text-dark-500"
+                >
+                  {{ t('admin.subscriptions.unlimited') }}
+                </div>
+              </template>
+              <!-- Non per_request type: show dash -->
+              <span v-else class="text-gray-400 dark:text-dark-500">—</span>
+            </div>
+          </template>
+
           <template #cell-expires_at="{ value }">
             <div v-if="value">
               <span
@@ -817,6 +852,7 @@ const allColumns = computed<Column[]>(() => [
   },
   { key: 'group', label: t('admin.subscriptions.columns.group'), sortable: false },
   { key: 'usage', label: t('admin.subscriptions.columns.usage'), sortable: false },
+  { key: 'request_usage', label: t('admin.subscriptions.columns.requestUsage'), sortable: false },
   { key: 'expires_at', label: t('admin.subscriptions.columns.expires'), sortable: true },
   { key: 'status', label: t('admin.subscriptions.columns.status'), sortable: true },
   { key: 'actions', label: t('admin.subscriptions.columns.actions'), sortable: false }
@@ -969,10 +1005,10 @@ const platformFilterOptions = computed(() => [
   { value: 'sora', label: 'Sora' }
 ])
 
-// Group options for assign (only subscription type groups)
+// Group options for assign (subscription and per_request type groups)
 const subscriptionGroupOptions = computed(() =>
   groups.value
-    .filter((g) => g.subscription_type === 'subscription' && g.status === 'active')
+    .filter((g) => (g.subscription_type === 'subscription' || g.subscription_type === 'per_request') && g.status === 'active')
     .map((g) => ({
       value: g.id,
       label: g.name,

@@ -393,7 +393,10 @@ func mustCreateSubscription(t *testing.T, client *dbent.Client, s *service.UserS
 		SetNotes(s.Notes).
 		SetDailyUsageUsd(s.DailyUsageUSD).
 		SetWeeklyUsageUsd(s.WeeklyUsageUSD).
-		SetMonthlyUsageUsd(s.MonthlyUsageUSD)
+		SetMonthlyUsageUsd(s.MonthlyUsageUSD).
+		SetDailyUsageRequests(s.DailyUsageRequests).
+		SetWeeklyUsageRequests(s.WeeklyUsageRequests).
+		SetMonthlyUsageRequests(s.MonthlyUsageRequests)
 
 	if s.AssignedBy != nil {
 		create.SetAssignedBy(*s.AssignedBy)

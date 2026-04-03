@@ -368,7 +368,7 @@ export interface PaginationConfig {
 
 export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'sora'
 
-export type SubscriptionType = 'standard' | 'subscription'
+export type SubscriptionType = 'standard' | 'subscription' | 'per_request'
 
 export interface Group {
   id: number
@@ -382,6 +382,11 @@ export interface Group {
   daily_limit_usd: number | null
   weekly_limit_usd: number | null
   monthly_limit_usd: number | null
+  // 按次计费配置
+  per_request_price: number | null
+  daily_limit_requests: number | null
+  weekly_limit_requests: number | null
+  monthly_limit_requests: number | null
   // 图片生成计费配置（仅 antigravity 平台使用）
   image_price_1k: number | null
   image_price_2k: number | null
@@ -452,6 +457,13 @@ export interface ApiKey {
   usage_5h: number
   usage_1d: number
   usage_7d: number
+  // 请求次数限速
+  rate_limit_requests_5h: number | null
+  rate_limit_requests_1d: number | null
+  rate_limit_requests_7d: number | null
+  usage_requests_5h: number
+  usage_requests_1d: number
+  usage_requests_7d: number
   window_5h_start: string | null
   window_1d_start: string | null
   window_7d_start: string | null
@@ -471,6 +483,10 @@ export interface CreateApiKeyRequest {
   rate_limit_5h?: number
   rate_limit_1d?: number
   rate_limit_7d?: number
+  // 请求次数限速
+  rate_limit_requests_5h?: number
+  rate_limit_requests_1d?: number
+  rate_limit_requests_7d?: number
 }
 
 export interface UpdateApiKeyRequest {
@@ -486,6 +502,10 @@ export interface UpdateApiKeyRequest {
   rate_limit_1d?: number
   rate_limit_7d?: number
   reset_rate_limit_usage?: boolean
+  // 请求次数限速
+  rate_limit_requests_5h?: number
+  rate_limit_requests_1d?: number
+  rate_limit_requests_7d?: number
 }
 
 export interface CreateGroupRequest {
@@ -498,6 +518,11 @@ export interface CreateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
+  // 按次计费配置
+  per_request_price?: number | null
+  daily_limit_requests?: number | null
+  weekly_limit_requests?: number | null
+  monthly_limit_requests?: number | null
   image_price_1k?: number | null
   image_price_2k?: number | null
   image_price_4k?: number | null
@@ -529,6 +554,11 @@ export interface UpdateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
+  // 按次计费配置
+  per_request_price?: number | null
+  daily_limit_requests?: number | null
+  weekly_limit_requests?: number | null
+  monthly_limit_requests?: number | null
   image_price_1k?: number | null
   image_price_2k?: number | null
   image_price_4k?: number | null
@@ -1302,6 +1332,10 @@ export interface UserSubscription {
   daily_usage_usd: number
   weekly_usage_usd: number
   monthly_usage_usd: number
+  // 请求次数用量
+  daily_usage_requests: number
+  weekly_usage_requests: number
+  monthly_usage_requests: number
   daily_window_start: string | null
   weekly_window_start: string | null
   monthly_window_start: string | null
@@ -1327,6 +1361,25 @@ export interface SubscriptionProgress {
     reset_in_seconds: number | null
   } | null
   monthly: {
+    used: number
+    limit: number | null
+    percentage: number
+    reset_in_seconds: number | null
+  } | null
+  // 请求次数用量进度
+  daily_requests: {
+    used: number
+    limit: number | null
+    percentage: number
+    reset_in_seconds: number | null
+  } | null
+  weekly_requests: {
+    used: number
+    limit: number | null
+    percentage: number
+    reset_in_seconds: number | null
+  } | null
+  monthly_requests: {
     used: number
     limit: number | null
     percentage: number

@@ -35,6 +35,9 @@ func (r *userSubscriptionRepository) Create(ctx context.Context, sub *service.Us
 		SetDailyUsageUsd(sub.DailyUsageUSD).
 		SetWeeklyUsageUsd(sub.WeeklyUsageUSD).
 		SetMonthlyUsageUsd(sub.MonthlyUsageUSD).
+		SetDailyUsageRequests(sub.DailyUsageRequests).
+		SetWeeklyUsageRequests(sub.WeeklyUsageRequests).
+		SetMonthlyUsageRequests(sub.MonthlyUsageRequests).
 		SetNillableAssignedBy(sub.AssignedBy)
 
 	if sub.StartsAt.IsZero() {
@@ -119,6 +122,9 @@ func (r *userSubscriptionRepository) Update(ctx context.Context, sub *service.Us
 		SetDailyUsageUsd(sub.DailyUsageUSD).
 		SetWeeklyUsageUsd(sub.WeeklyUsageUSD).
 		SetMonthlyUsageUsd(sub.MonthlyUsageUSD).
+		SetDailyUsageRequests(sub.DailyUsageRequests).
+		SetWeeklyUsageRequests(sub.WeeklyUsageRequests).
+		SetMonthlyUsageRequests(sub.MonthlyUsageRequests).
 		SetNillableAssignedBy(sub.AssignedBy).
 		SetAssignedAt(sub.AssignedAt).
 		SetNotes(sub.Notes)
@@ -313,6 +319,7 @@ func (r *userSubscriptionRepository) ResetDailyUsage(ctx context.Context, id int
 	client := clientFromContext(ctx, r.client)
 	_, err := client.UserSubscription.UpdateOneID(id).
 		SetDailyUsageUsd(0).
+		SetDailyUsageRequests(0).
 		SetDailyWindowStart(newWindowStart).
 		Save(ctx)
 	return translatePersistenceError(err, service.ErrSubscriptionNotFound, nil)
@@ -322,6 +329,7 @@ func (r *userSubscriptionRepository) ResetWeeklyUsage(ctx context.Context, id in
 	client := clientFromContext(ctx, r.client)
 	_, err := client.UserSubscription.UpdateOneID(id).
 		SetWeeklyUsageUsd(0).
+		SetWeeklyUsageRequests(0).
 		SetWeeklyWindowStart(newWindowStart).
 		Save(ctx)
 	return translatePersistenceError(err, service.ErrSubscriptionNotFound, nil)
@@ -331,6 +339,7 @@ func (r *userSubscriptionRepository) ResetMonthlyUsage(ctx context.Context, id i
 	client := clientFromContext(ctx, r.client)
 	_, err := client.UserSubscription.UpdateOneID(id).
 		SetMonthlyUsageUsd(0).
+		SetMonthlyUsageRequests(0).
 		SetMonthlyWindowStart(newWindowStart).
 		Save(ctx)
 	return translatePersistenceError(err, service.ErrSubscriptionNotFound, nil)
@@ -371,6 +380,62 @@ func (r *userSubscriptionRepository) IncrementUsage(ctx context.Context, id int6
 
 	// affected == 0：订阅不存在或已删除
 	return service.ErrSubscriptionNotFound
+}
+
+// IncrementRequestUsage 原子性地累加请求次数用量。
+// 同时累加 daily/weekly/monthly_usage_requests 三个字段，
+// 用于 per_request 计费模式的请求次数追踪。
+func (r *userSubscriptionRepository) IncrementRequestUsage(ctx context.Context, subscriptionID int64, count int64) error {
+	const updateSQL = `
+		UPDATE user_subscriptions
+		SET
+			daily_usage_requests = daily_usage_requests + $1,
+			weekly_usage_requests = weekly_usage_requests + $1,
+			monthly_usage_requests = monthly_usage_requests + $1,
+			updated_at = NOW()
+		WHERE id = $2 AND deleted_at IS NULL
+	`
+
+	client := clientFromContext(ctx, r.client)
+	result, err := client.ExecContext(ctx, updateSQL, count, subscriptionID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected > 0 {
+		return nil
+	}
+
+	return service.ErrSubscriptionNotFound
+}
+
+// AdjustRequestUsage 管理员手动调整请求次数用量
+// 用于补偿和修复场景，直接设置指定窗口的请求次数值
+func (r *userSubscriptionRepository) AdjustRequestUsage(ctx context.Context, subscriptionID int64, input *service.AdminAdjustRequestUsageInput) error {
+	if input == nil {
+		return service.ErrSubscriptionNilInput
+	}
+
+	client := clientFromContext(ctx, r.client)
+	builder := client.UserSubscription.UpdateOneID(subscriptionID)
+
+	if input.DailyUsageRequests != nil {
+		builder.SetDailyUsageRequests(*input.DailyUsageRequests)
+	}
+	if input.WeeklyUsageRequests != nil {
+		builder.SetWeeklyUsageRequests(*input.WeeklyUsageRequests)
+	}
+	if input.MonthlyUsageRequests != nil {
+		builder.SetMonthlyUsageRequests(*input.MonthlyUsageRequests)
+	}
+
+	_, err := builder.Save(ctx)
+	return translatePersistenceError(err, service.ErrSubscriptionNotFound, nil)
 }
 
 func (r *userSubscriptionRepository) BatchUpdateExpiredStatus(ctx context.Context) (int64, error) {
@@ -442,6 +507,9 @@ func userSubscriptionEntityToService(m *dbent.UserSubscription) *service.UserSub
 		DailyUsageUSD:      m.DailyUsageUsd,
 		WeeklyUsageUSD:     m.WeeklyUsageUsd,
 		MonthlyUsageUSD:    m.MonthlyUsageUsd,
+			DailyUsageRequests:   m.DailyUsageRequests,
+			WeeklyUsageRequests:  m.WeeklyUsageRequests,
+			MonthlyUsageRequests: m.MonthlyUsageRequests,
 		AssignedBy:         m.AssignedBy,
 		AssignedAt:         m.AssignedAt,
 		Notes:              derefString(m.Notes),

@@ -124,15 +124,17 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 			return
 		}
 
-		// ── 5. 加载订阅（订阅模式时始终加载） ───────────────────────
+		// ── 5. 加载订阅（订阅模式或按次计费模式有限额时） ───────────────────────
 
 		// skipBilling: /v1/usage 只需鉴权，跳过所有计费执行
 		skipBilling := c.Request.URL.Path == "/v1/usage"
 
 		var subscription *service.UserSubscription
 		isSubscriptionType := apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
+		// 按次计费模式：只有在配置了次数限额时才需要订阅
+		isPerRequestWithLimits := apiKey.Group != nil && apiKey.Group.IsPerRequestType() && apiKey.Group.HasAnyRequestLimit()
 
-		if isSubscriptionType && subscriptionService != nil {
+		if (isSubscriptionType || isPerRequestWithLimits) && subscriptionService != nil {
 			sub, subErr := subscriptionService.GetActiveSubscription(
 				c.Request.Context(),
 				apiKey.User.ID,
@@ -172,18 +174,49 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 				return
 			}
 
-			// 订阅模式：验证订阅限额
-			if subscription != nil {
+			// 计费模式检查
+			if apiKey.Group != nil && apiKey.Group.IsPerRequestType() {
+				// 按次计费模式预检
+				hasPrice := apiKey.Group.HasPerRequestPrice()
+				hasLimit := apiKey.Group.HasAnyRequestLimit()
+
+				if !hasPrice && !hasLimit {
+					AbortWithError(c, 403, "GROUP_BILLING_CONFIG_INVALID", "per_request group must have either per_request_price or at least one request limit configured")
+					return
+				}
+
+				// 1. 余额检查（如果有单价）
+				if hasPrice {
+					if apiKey.User.Balance < *apiKey.Group.PerRequestPrice {
+						AbortWithError(c, 403, "INSUFFICIENT_BALANCE", "Insufficient account balance")
+						return
+					}
+				}
+
+				// 2. 次数限额检查（如果有限额配置且有订阅）
+				if hasLimit {
+					if subscription == nil {
+						AbortWithError(c, 403, "SUBSCRIPTION_REQUIRED", "subscription is required for per_request mode with request limits")
+						return
+					}
+					needsMaintenance, validateErr := subscriptionService.ValidateAndCheckLimits(subscription, apiKey.Group)
+					if validateErr != nil {
+						status, code := mapPerRequestError(validateErr)
+						AbortWithError(c, status, code, validateErr.Error())
+						return
+					}
+
+					// 窗口维护异步化（不阻塞请求）
+					if needsMaintenance {
+						maintenanceCopy := *subscription
+						subscriptionService.DoWindowMaintenance(&maintenanceCopy)
+					}
+				}
+			} else if subscription != nil {
+				// 订阅模式：验证订阅限额
 				needsMaintenance, validateErr := subscriptionService.ValidateAndCheckLimits(subscription, apiKey.Group)
 				if validateErr != nil {
-					code := "SUBSCRIPTION_INVALID"
-					status := 403
-					if errors.Is(validateErr, service.ErrDailyLimitExceeded) ||
-						errors.Is(validateErr, service.ErrWeeklyLimitExceeded) ||
-						errors.Is(validateErr, service.ErrMonthlyLimitExceeded) {
-						code = "USAGE_LIMIT_EXCEEDED"
-						status = 429
-					}
+					status, code := mapBillingError(validateErr)
 					AbortWithError(c, status, code, validateErr.Error())
 					return
 				}
@@ -218,6 +251,41 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 
 		c.Next()
 	}
+}
+
+// mapBillingError 映射计费错误到 HTTP 状态码和错误码
+// 统一处理 USD 限额错误和请求次数限额错误
+func mapBillingError(err error) (status int, code string) {
+	var reqLimitErr *service.RequestLimitExceededError
+
+	switch {
+	// USD 限额错误
+	case errors.Is(err, service.ErrDailyLimitExceeded):
+		return 429, "DAILY_LIMIT_EXCEEDED"
+	case errors.Is(err, service.ErrWeeklyLimitExceeded):
+		return 429, "WEEKLY_LIMIT_EXCEEDED"
+	case errors.Is(err, service.ErrMonthlyLimitExceeded):
+		return 429, "MONTHLY_LIMIT_EXCEEDED"
+	// 请求次数限额错误
+	case errors.Is(err, service.ErrDailyRequestLimitExceeded):
+		return 429, "DAILY_REQUEST_LIMIT_EXCEEDED"
+	case errors.Is(err, service.ErrWeeklyRequestLimitExceeded):
+		return 429, "WEEKLY_REQUEST_LIMIT_EXCEEDED"
+	case errors.Is(err, service.ErrMonthlyRequestLimitExceeded):
+		return 429, "MONTHLY_REQUEST_LIMIT_EXCEEDED"
+	// 结构化请求次数错误（包含 used/limit/reset_in_seconds）
+	case errors.As(err, &reqLimitErr):
+		return 429, reqLimitErr.Code()
+	// 其他订阅错误
+	default:
+		return 403, "SUBSCRIPTION_INVALID"
+	}
+}
+
+// mapPerRequestError 映射按次计费错误到 HTTP 状态码和错误码
+// Deprecated: 使用 mapBillingError 代替
+func mapPerRequestError(err error) (status int, code string) {
+	return mapBillingError(err)
 }
 
 // GetAPIKeyFromContext 从上下文中获取API key

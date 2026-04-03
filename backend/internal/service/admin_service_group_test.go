@@ -657,12 +657,11 @@ func TestAdminService_UpdateGroup_InvalidRequestFallbackPlatformMismatch(t *test
 func TestAdminService_UpdateGroup_InvalidRequestFallbackSubscriptionMismatch(t *testing.T) {
 	fallbackID := int64(10)
 	existing := &Group{
-		ID:                              1,
-		Name:                            "g1",
-		Platform:                        PlatformAnthropic,
-		SubscriptionType:                SubscriptionTypeStandard,
-		Status:                          StatusActive,
-		FallbackGroupIDOnInvalidRequest: &fallbackID,
+		ID:               1,
+		Name:             "g1",
+		Platform:         PlatformAnthropic,
+		SubscriptionType: SubscriptionTypeSubscription, // Already subscription type
+		Status:           StatusActive,
 	}
 	repo := &groupRepoStubForInvalidRequestFallback{
 		groups: map[int64]*Group{
@@ -672,8 +671,9 @@ func TestAdminService_UpdateGroup_InvalidRequestFallbackSubscriptionMismatch(t *
 	}
 	svc := &adminServiceImpl{groupRepo: repo}
 
+	// Try to set invalid request fallback on a subscription group
 	_, err := svc.UpdateGroup(context.Background(), existing.ID, &UpdateGroupInput{
-		SubscriptionType: SubscriptionTypeSubscription,
+		FallbackGroupIDOnInvalidRequest: &fallbackID,
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "subscription groups cannot set invalid request fallback")

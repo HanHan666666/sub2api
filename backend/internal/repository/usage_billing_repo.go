@@ -118,6 +118,12 @@ func (r *usageBillingRepository) applyUsageBillingEffects(ctx context.Context, t
 		}
 	}
 
+	if cmd.IncrementRequests > 0 && cmd.SubscriptionID != nil {
+		if err := incrementUsageBillingRequestCount(ctx, tx, *cmd.SubscriptionID, cmd.IncrementRequests); err != nil {
+			return err
+		}
+	}
+
 	if cmd.APIKeyQuotaCost > 0 {
 		exhausted, err := incrementUsageBillingAPIKeyQuota(ctx, tx, cmd.APIKeyID, cmd.APIKeyQuotaCost)
 		if err != nil {
@@ -299,10 +305,33 @@ func incrementUsageBillingAccountQuota(ctx context.Context, tx *sql.Tx, accountI
 		return err
 	}
 	if limit > 0 && newUsed >= limit && (newUsed-amount) < limit {
-		if err := enqueueSchedulerOutbox(ctx, tx, service.SchedulerOutboxEventAccountChanged, &accountID, nil, nil); err != nil {
-			logger.LegacyPrintf("repository.usage_billing", "[SchedulerOutbox] enqueue quota exceeded failed: account=%d err=%v", accountID, err)
-			return err
+			if err := enqueueSchedulerOutbox(ctx, tx, service.SchedulerOutboxEventAccountChanged, &accountID, nil, nil); err != nil {
+				logger.LegacyPrintf("repository.usage_billing", "[SchedulerOutbox] enqueue quota exceeded failed: account=%d err=%v", accountID, err)
+				return err
+			}
 		}
+		return nil
 	}
-	return nil
+
+func incrementUsageBillingRequestCount(ctx context.Context, tx *sql.Tx, subscriptionID int64, count int64) error {
+	res, err := tx.ExecContext(ctx, `
+		UPDATE user_subscriptions
+		SET
+			daily_usage_requests = daily_usage_requests + $1,
+			weekly_usage_requests = weekly_usage_requests + $1,
+			monthly_usage_requests = monthly_usage_requests + $1,
+			updated_at = NOW()
+		WHERE id = $2 AND deleted_at IS NULL
+	`, count, subscriptionID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected > 0 {
+		return nil
+	}
+	return service.ErrSubscriptionNotFound
 }

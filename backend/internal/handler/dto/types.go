@@ -47,7 +47,7 @@ type APIKey struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 
-	// Rate limit fields
+	// Rate limit fields (USD)
 	RateLimit5h   float64    `json:"rate_limit_5h"`
 	RateLimit1d   float64    `json:"rate_limit_1d"`
 	RateLimit7d   float64    `json:"rate_limit_7d"`
@@ -60,6 +60,20 @@ type APIKey struct {
 	Reset5hAt     *time.Time `json:"reset_5h_at,omitempty"`
 	Reset1dAt     *time.Time `json:"reset_1d_at,omitempty"`
 	Reset7dAt     *time.Time `json:"reset_7d_at,omitempty"`
+
+	// Request count rate limit fields
+	RateLimitRequests5h   *int64    `json:"rate_limit_requests_5h,omitempty"`
+	RateLimitRequests1d   *int64    `json:"rate_limit_requests_1d,omitempty"`
+	RateLimitRequests7d   *int64    `json:"rate_limit_requests_7d,omitempty"`
+	UsageRequests5h       int64     `json:"usage_requests_5h"`
+	UsageRequests1d       int64     `json:"usage_requests_1d"`
+	UsageRequests7d       int64     `json:"usage_requests_7d"`
+	WindowRequests5hStart *time.Time `json:"window_requests_5h_start,omitempty"`
+	WindowRequests1dStart *time.Time `json:"window_requests_1d_start,omitempty"`
+	WindowRequests7dStart *time.Time `json:"window_requests_7d_start,omitempty"`
+	ResetRequests5hAt     *time.Time `json:"reset_requests_5h_at,omitempty"`
+	ResetRequests1dAt     *time.Time `json:"reset_requests_1d_at,omitempty"`
+	ResetRequests7dAt     *time.Time `json:"reset_requests_7d_at,omitempty"`
 
 	User  *User  `json:"user,omitempty"`
 	Group *Group `json:"group,omitempty"`
@@ -78,6 +92,12 @@ type Group struct {
 	DailyLimitUSD    *float64 `json:"daily_limit_usd"`
 	WeeklyLimitUSD   *float64 `json:"weekly_limit_usd"`
 	MonthlyLimitUSD  *float64 `json:"monthly_limit_usd"`
+
+	// 按次计费配置
+	PerRequestPrice      *float64 `json:"per_request_price"`
+	DailyLimitRequests   *int64   `json:"daily_limit_requests"`
+	WeeklyLimitRequests  *int64   `json:"weekly_limit_requests"`
+	MonthlyLimitRequests *int64   `json:"monthly_limit_requests"`
 
 	// 图片生成计费配置（仅 antigravity 平台使用）
 	ImagePrice1K *float64 `json:"image_price_1k"`
@@ -474,6 +494,11 @@ type UserSubscription struct {
 	DailyUsageUSD   float64 `json:"daily_usage_usd"`
 	WeeklyUsageUSD  float64 `json:"weekly_usage_usd"`
 	MonthlyUsageUSD float64 `json:"monthly_usage_usd"`
+
+	// 按次用量追踪
+	DailyUsageRequests   int64 `json:"daily_usage_requests"`
+	WeeklyUsageRequests  int64 `json:"weekly_usage_requests"`
+	MonthlyUsageRequests int64 `json:"monthly_usage_requests"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

@@ -218,6 +218,25 @@ type UserDashboardStats struct {
 	// 性能指标
 	Rpm int64 `json:"rpm"` // 近5分钟平均每分钟请求数
 	Tpm int64 `json:"tpm"` // 近5分钟平均每分钟Token数
+
+	// 按次计费信息（per_request 模式）
+	BillingMode     string             `json:"billing_mode,omitempty"`      // "standard" / "subscription" / "per_request"
+	PerRequestPrice *float64           `json:"per_request_price,omitempty"` // 单次请求价格
+	RequestLimits   *RequestLimitsInfo `json:"request_limits,omitempty"`    // 次数限额信息
+}
+
+// RequestLimitsInfo 次数限额信息
+type RequestLimitsInfo struct {
+	Daily   *RequestLimitDetail `json:"daily,omitempty"`
+	Weekly  *RequestLimitDetail `json:"weekly,omitempty"`
+	Monthly *RequestLimitDetail `json:"monthly,omitempty"`
+}
+
+// RequestLimitDetail 请求次数限额详情
+type RequestLimitDetail struct {
+	Used           int64 `json:"used"`
+	Limit          int64 `json:"limit"`
+	ResetInSeconds int64 `json:"reset_in_seconds"`
 }
 
 // UsageLogFilters represents filters for usage log queries

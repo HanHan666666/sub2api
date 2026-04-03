@@ -32,6 +32,7 @@ type BillingCache interface {
 	GetSubscriptionCache(ctx context.Context, userID, groupID int64) (*SubscriptionCacheData, error)
 	SetSubscriptionCache(ctx context.Context, userID, groupID int64, data *SubscriptionCacheData) error
 	UpdateSubscriptionUsage(ctx context.Context, userID, groupID int64, cost float64) error
+	IncrementSubscriptionRequestUsage(ctx context.Context, userID, groupID int64, count int64) error
 	InvalidateSubscriptionCache(ctx context.Context, userID, groupID int64) error
 
 	// API Key rate limit operations
@@ -776,4 +777,29 @@ func (s *BillingService) getDefaultImagePrice(model string, imageSize string) fl
 	}
 
 	return basePrice
+}
+
+// CalculatePerRequestCost 按次计费的费用计算
+// 参数:
+//   - perRequestPrice: 分组配置的每次请求单价（USD）
+//   - rateMultiplier: 分组计费倍率
+//
+// 返回:
+//   - totalCost: 原始费用 = perRequestPrice
+//   - actualCost: 实际费用 = perRequestPrice × rateMultiplier
+func (s *BillingService) CalculatePerRequestCost(
+	perRequestPrice float64,
+	rateMultiplier float64,
+) *CostBreakdown {
+	if rateMultiplier <= 0 {
+		rateMultiplier = 1.0
+	}
+	return &CostBreakdown{
+		InputCost:         0,
+		OutputCost:        0,
+		CacheCreationCost: 0,
+		CacheReadCost:     0,
+		TotalCost:         perRequestPrice,
+		ActualCost:        perRequestPrice * rateMultiplier,
+	}
 }

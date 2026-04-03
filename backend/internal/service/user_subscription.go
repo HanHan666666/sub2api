@@ -1,6 +1,9 @@
 package service
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type UserSubscription struct {
 	ID      int64
@@ -18,6 +21,11 @@ type UserSubscription struct {
 	DailyUsageUSD   float64
 	WeeklyUsageUSD  float64
 	MonthlyUsageUSD float64
+
+	// 按次用量追踪（新增）
+	DailyUsageRequests   int64 // 当前日窗口已用请求次数
+	WeeklyUsageRequests  int64 // 当前周窗口已用请求次数
+	MonthlyUsageRequests int64 // 当前月窗口已用请求次数
 
 	AssignedBy *int64
 	AssignedAt time.Time
@@ -121,4 +129,126 @@ func (s *UserSubscription) CheckAllLimits(group *Group, additionalCost float64) 
 	weekly = s.CheckWeeklyLimit(group, additionalCost)
 	monthly = s.CheckMonthlyLimit(group, additionalCost)
 	return
+}
+
+// GetDailyResetInSeconds 返回日窗口重置剩余秒数
+func (s *UserSubscription) GetDailyResetInSeconds() int64 {
+	if s.DailyWindowStart == nil {
+		return 0
+	}
+	resetTime := s.DailyWindowStart.Add(24 * time.Hour)
+	remaining := time.Until(resetTime).Seconds()
+	if remaining < 0 {
+		return 0
+	}
+	return int64(remaining)
+}
+
+// GetWeeklyResetInSeconds 返回周窗口重置剩余秒数
+func (s *UserSubscription) GetWeeklyResetInSeconds() int64 {
+	if s.WeeklyWindowStart == nil {
+		return 0
+	}
+	resetTime := s.WeeklyWindowStart.Add(7 * 24 * time.Hour)
+	remaining := time.Until(resetTime).Seconds()
+	if remaining < 0 {
+		return 0
+	}
+	return int64(remaining)
+}
+
+// GetMonthlyResetInSeconds 返回月窗口重置剩余秒数
+func (s *UserSubscription) GetMonthlyResetInSeconds() int64 {
+	if s.MonthlyWindowStart == nil {
+		return 0
+	}
+	resetTime := s.MonthlyWindowStart.Add(30 * 24 * time.Hour)
+	remaining := time.Until(resetTime).Seconds()
+	if remaining < 0 {
+		return 0
+	}
+	return int64(remaining)
+}
+
+// CheckDailyLimitRequests 检查是否超过每日请求次数限额
+// additionalRequests 通常为 1（一次请求）
+func (s *UserSubscription) CheckDailyLimitRequests(group *Group, additionalRequests int64) error {
+	if !group.HasDailyLimitRequests() {
+		return nil // 无限制
+	}
+	if s.DailyUsageRequests+additionalRequests > *group.DailyLimitRequests {
+		return NewRequestLimitExceededError(
+			"daily",
+			s.DailyUsageRequests+additionalRequests,
+			*group.DailyLimitRequests,
+			s.GetDailyResetInSeconds(),
+		)
+	}
+	return nil
+}
+
+// CheckWeeklyLimitRequests 检查是否超过每周请求次数限额
+func (s *UserSubscription) CheckWeeklyLimitRequests(group *Group, additionalRequests int64) error {
+	if !group.HasWeeklyLimitRequests() {
+		return nil // 无限制
+	}
+	if s.WeeklyUsageRequests+additionalRequests > *group.WeeklyLimitRequests {
+		return NewRequestLimitExceededError(
+			"weekly",
+			s.WeeklyUsageRequests+additionalRequests,
+			*group.WeeklyLimitRequests,
+			s.GetWeeklyResetInSeconds(),
+		)
+	}
+	return nil
+}
+
+// CheckMonthlyLimitRequests 检查是否超过每月请求次数限额
+func (s *UserSubscription) CheckMonthlyLimitRequests(group *Group, additionalRequests int64) error {
+	if !group.HasMonthlyLimitRequests() {
+		return nil // 无限制
+	}
+	if s.MonthlyUsageRequests+additionalRequests > *group.MonthlyLimitRequests {
+		return NewRequestLimitExceededError(
+			"monthly",
+			s.MonthlyUsageRequests+additionalRequests,
+			*group.MonthlyLimitRequests,
+			s.GetMonthlyResetInSeconds(),
+		)
+	}
+	return nil
+}
+
+// RequestLimitExceededError 用于向 API 层传递结构化限额信息
+type RequestLimitExceededError struct {
+	Window         string
+	Used           int64
+	Limit          int64
+	ResetInSeconds int64
+}
+
+func (e *RequestLimitExceededError) Error() string {
+	return fmt.Sprintf("%s request limit exceeded (%d/%d)", e.Window, e.Used, e.Limit)
+}
+
+func NewRequestLimitExceededError(window string, used, limit, resetInSeconds int64) error {
+	return &RequestLimitExceededError{
+		Window:         window,
+		Used:           used,
+		Limit:          limit,
+		ResetInSeconds: resetInSeconds,
+	}
+}
+
+func (e *RequestLimitExceededError) Code() string {
+	switch e.Window {
+	case "daily":
+		return "DAILY_REQUEST_LIMIT_EXCEEDED"
+	case "weekly":
+		return "WEEKLY_REQUEST_LIMIT_EXCEEDED"
+	case "monthly":
+		return "MONTHLY_REQUEST_LIMIT_EXCEEDED"
+	default:
+		return "REQUEST_LIMIT_EXCEEDED"
+	}
 }

@@ -206,12 +206,121 @@
               </p>
             </div>
 
+            <!-- Per Request Mode: Request Usage Progress -->
+            <template v-if="subscription.group?.subscription_type === 'per_request'">
+              <!-- Price Info -->
+              <div
+                v-if="subscription.group.per_request_price && subscription.group.per_request_price > 0"
+                class="flex items-center justify-between rounded-lg bg-purple-50 px-3 py-2 dark:bg-purple-900/20"
+              >
+                <span class="text-sm font-medium text-purple-700 dark:text-purple-300">
+                  {{ t('userSubscriptions.perRequestPrice') }}
+                </span>
+                <span class="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                  ${{ subscription.group.per_request_price.toFixed(4) }}/{{ t('userSubscriptions.request') }}
+                </span>
+              </div>
+
+              <!-- Daily Requests -->
+              <div v-if="subscription.group.daily_limit_requests" class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('userSubscriptions.dailyRequests') }}
+                  </span>
+                  <span class="text-sm text-gray-500 dark:text-dark-400">
+                    {{ subscription.daily_usage_requests || 0 }} / {{ subscription.group.daily_limit_requests }}
+                    {{ t('userSubscriptions.requests') }}
+                  </span>
+                </div>
+                <div class="relative h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-600">
+                  <div
+                    class="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
+                    :class="
+                      getProgressBarClass(
+                        subscription.daily_usage_requests,
+                        subscription.group.daily_limit_requests
+                      )
+                    "
+                    :style="{
+                      width: getProgressWidth(
+                        subscription.daily_usage_requests,
+                        subscription.group.daily_limit_requests
+                      )
+                    }"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Weekly Requests -->
+              <div v-if="subscription.group.weekly_limit_requests" class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('userSubscriptions.weeklyRequests') }}
+                  </span>
+                  <span class="text-sm text-gray-500 dark:text-dark-400">
+                    {{ subscription.weekly_usage_requests || 0 }} / {{ subscription.group.weekly_limit_requests }}
+                    {{ t('userSubscriptions.requests') }}
+                  </span>
+                </div>
+                <div class="relative h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-600">
+                  <div
+                    class="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
+                    :class="
+                      getProgressBarClass(
+                        subscription.weekly_usage_requests,
+                        subscription.group.weekly_limit_requests
+                      )
+                    "
+                    :style="{
+                      width: getProgressWidth(
+                        subscription.weekly_usage_requests,
+                        subscription.group.weekly_limit_requests
+                      )
+                    }"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Monthly Requests -->
+              <div v-if="subscription.group.monthly_limit_requests" class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('userSubscriptions.monthlyRequests') }}
+                  </span>
+                  <span class="text-sm text-gray-500 dark:text-dark-400">
+                    {{ subscription.monthly_usage_requests || 0 }} / {{ subscription.group.monthly_limit_requests }}
+                    {{ t('userSubscriptions.requests') }}
+                  </span>
+                </div>
+                <div class="relative h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-600">
+                  <div
+                    class="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
+                    :class="
+                      getProgressBarClass(
+                        subscription.monthly_usage_requests,
+                        subscription.group.monthly_limit_requests
+                      )
+                    "
+                    :style="{
+                      width: getProgressWidth(
+                        subscription.monthly_usage_requests,
+                        subscription.group.monthly_limit_requests
+                      )
+                    }"
+                  ></div>
+                </div>
+              </div>
+            </template>
+
             <!-- No limits configured - Unlimited badge -->
             <div
               v-if="
                 !subscription.group?.daily_limit_usd &&
                 !subscription.group?.weekly_limit_usd &&
-                !subscription.group?.monthly_limit_usd
+                !subscription.group?.monthly_limit_usd &&
+                !subscription.group?.daily_limit_requests &&
+                !subscription.group?.weekly_limit_requests &&
+                !subscription.group?.monthly_limit_requests
               "
               class="flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 py-6 dark:from-emerald-900/20 dark:to-teal-900/20"
             >

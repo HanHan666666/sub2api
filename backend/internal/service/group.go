@@ -21,6 +21,12 @@ type Group struct {
 	MonthlyLimitUSD     *float64
 	DefaultValidityDays int
 
+	// 按次计费配置（新增）
+	PerRequestPrice      *float64 // 每次请求的固定费用（USD），nil=不从余额扣费
+	DailyLimitRequests   *int64   // 每日请求次数限额，nil=不限制
+	WeeklyLimitRequests  *int64   // 每周请求次数限额
+	MonthlyLimitRequests *int64   // 每月请求次数限额
+
 	// 图片生成计费配置（antigravity 和 gemini 平台使用）
 	ImagePrice1K *float64
 	ImagePrice2K *float64
@@ -80,6 +86,10 @@ func (g *Group) IsSubscriptionType() bool {
 	return g.SubscriptionType == SubscriptionTypeSubscription
 }
 
+func (g *Group) IsPerRequestType() bool {
+	return g.SubscriptionType == SubscriptionTypePerRequest
+}
+
 func (g *Group) IsFreeSubscription() bool {
 	return g.IsSubscriptionType() && g.RateMultiplier == 0
 }
@@ -94,6 +104,31 @@ func (g *Group) HasWeeklyLimit() bool {
 
 func (g *Group) HasMonthlyLimit() bool {
 	return g.MonthlyLimitUSD != nil && *g.MonthlyLimitUSD > 0
+}
+
+// HasPerRequestPrice 判断是否配置了按次单价
+func (g *Group) HasPerRequestPrice() bool {
+	return g.PerRequestPrice != nil && *g.PerRequestPrice > 0
+}
+
+// HasDailyLimitRequests 判断是否配置了每日次数限额
+func (g *Group) HasDailyLimitRequests() bool {
+	return g.DailyLimitRequests != nil && *g.DailyLimitRequests > 0
+}
+
+// HasWeeklyLimitRequests 判断是否配置了每周次数限额
+func (g *Group) HasWeeklyLimitRequests() bool {
+	return g.WeeklyLimitRequests != nil && *g.WeeklyLimitRequests > 0
+}
+
+// HasMonthlyLimitRequests 判断是否配置了每月次数限额
+func (g *Group) HasMonthlyLimitRequests() bool {
+	return g.MonthlyLimitRequests != nil && *g.MonthlyLimitRequests > 0
+}
+
+// HasAnyRequestLimit 判断是否配置了任何次数限额
+func (g *Group) HasAnyRequestLimit() bool {
+	return g.HasDailyLimitRequests() || g.HasWeeklyLimitRequests() || g.HasMonthlyLimitRequests()
 }
 
 // GetImagePrice 根据 image_size 返回对应的图片生成价格

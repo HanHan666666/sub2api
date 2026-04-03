@@ -115,6 +115,44 @@ func (APIKey) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Start time of the current 7d rate limit window"),
+
+		// ========== Request count rate limit fields ==========
+		// Request count rate limit configuration (nil = unlimited)
+		field.Int64("rate_limit_requests_5h").
+			Optional().
+			Nillable().
+			Comment("Max requests per 5 hours (null = unlimited)"),
+		field.Int64("rate_limit_requests_1d").
+			Optional().
+			Nillable().
+			Comment("Max requests per day (null = unlimited)"),
+		field.Int64("rate_limit_requests_7d").
+			Optional().
+			Nillable().
+			Comment("Max requests per 7 days (null = unlimited)"),
+		// Request count usage tracking
+		field.Int64("usage_requests_5h").
+			Default(0).
+			Comment("Used requests for the current 5h window"),
+		field.Int64("usage_requests_1d").
+			Default(0).
+			Comment("Used requests for the current 1d window"),
+		field.Int64("usage_requests_7d").
+			Default(0).
+			Comment("Used requests for the current 7d window"),
+		// Request count window start times
+		field.Time("window_requests_5h_start").
+			Optional().
+			Nillable().
+			Comment("Start time of the current 5h request count window"),
+		field.Time("window_requests_1d_start").
+			Optional().
+			Nillable().
+			Comment("Start time of the current 1d request count window"),
+		field.Time("window_requests_7d_start").
+			Optional().
+			Nillable().
+			Comment("Start time of the current 7d request count window"),
 	}
 }
 

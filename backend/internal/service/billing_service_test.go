@@ -768,3 +768,79 @@ func TestGetModelPricing_MapsDynamicPriorityFieldsIntoBillingPricing(t *testing.
 	require.InDelta(t, 1.5, pricing.LongContextInputMultiplier, 1e-12)
 	require.InDelta(t, 1.25, pricing.LongContextOutputMultiplier, 1e-12)
 }
+
+// ============================================
+// 边界条件测试：负值、溢出、极大值
+// ============================================
+
+func TestCalculateCost_LargeTokenCountNoOverflow(t *testing.T) {
+	svc := newTestBillingService()
+
+	// 测试极大 token 数不会溢出
+	tokens := UsageTokens{
+		InputTokens:  10_000_000, // 10M tokens
+		OutputTokens: 10_000_000,
+	}
+	cost, err := svc.CalculateCost("claude-sonnet-4", tokens, 1.0)
+	require.NoError(t, err)
+
+	// Input: 10M * 3e-6 = $30, Output: 10M * 15e-6 = $150
+	require.InDelta(t, 30.0, cost.InputCost, 1e-6)
+	require.InDelta(t, 150.0, cost.OutputCost, 1e-6)
+	require.InDelta(t, 180.0, cost.TotalCost, 1e-6)
+	require.False(t, math.IsNaN(cost.TotalCost))
+	require.False(t, math.IsInf(cost.TotalCost, 0))
+}
+
+func TestCalculateCost_VerySmallPrice(t *testing.T) {
+	svc := newTestBillingService()
+
+	// 测试极小价格精度
+	tokens := UsageTokens{InputTokens: 1}
+	cost, err := svc.CalculateCost("claude-sonnet-4", tokens, 1.0)
+	require.NoError(t, err)
+	require.InDelta(t, 3e-6, cost.InputCost, 1e-12)
+	require.False(t, math.IsNaN(cost.TotalCost))
+}
+
+func TestCalculateCost_NegativeTokens(t *testing.T) {
+	svc := newTestBillingService()
+
+	// 负数 token 应该产生负费用（调用方应负责验证输入）
+	tokens := UsageTokens{
+		InputTokens:  -1000,
+		OutputTokens: 500,
+	}
+	cost, err := svc.CalculateCost("claude-sonnet-4", tokens, 1.0)
+	require.NoError(t, err)
+	// 负输入产生负费用
+	require.InDelta(t, -3e-3, cost.InputCost, 1e-9)
+}
+
+func TestCalculateCost_VeryHighRateMultiplier(t *testing.T) {
+	svc := newTestBillingService()
+
+	tokens := UsageTokens{InputTokens: 1000, OutputTokens: 500}
+
+	// 极高倍率
+	cost, err := svc.CalculateCost("claude-sonnet-4", tokens, 1000.0)
+	require.NoError(t, err)
+	expectedBase := 1000*3e-6 + 500*15e-6
+	require.InDelta(t, expectedBase, cost.TotalCost, 1e-9)
+	require.InDelta(t, expectedBase*1000, cost.ActualCost, 1e-6)
+}
+
+func TestCalculateCost_AccumulatedPrecision(t *testing.T) {
+	svc := newTestBillingService()
+
+	// 多次小额累加精度测试
+	totalCost := 0.0
+	for i := 0; i < 1000; i++ {
+		cost, err := svc.CalculateCost("claude-sonnet-4", UsageTokens{InputTokens: 100}, 1.0)
+		require.NoError(t, err)
+		totalCost += cost.ActualCost
+	}
+
+	expected := 1000 * 100 * 3e-6
+	require.InDelta(t, expected, totalCost, 1e-9, "accumulated cost should be precise")
+}

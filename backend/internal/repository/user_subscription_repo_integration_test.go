@@ -379,6 +379,8 @@ func (s *UserSubscriptionRepoSuite) TestResetDailyUsage() {
 	sub := s.mustCreateSubscription(user.ID, group.ID, func(c *dbent.UserSubscriptionCreate) {
 		c.SetDailyUsageUsd(10.0)
 		c.SetWeeklyUsageUsd(20.0)
+		c.SetDailyUsageRequests(100)
+		c.SetWeeklyUsageRequests(200)
 	})
 
 	resetAt := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
@@ -387,8 +389,10 @@ func (s *UserSubscriptionRepoSuite) TestResetDailyUsage() {
 
 	got, err := s.repo.GetByID(s.ctx, sub.ID)
 	s.Require().NoError(err)
-	s.Require().InDelta(0.0, got.DailyUsageUSD, 1e-6)
-	s.Require().InDelta(20.0, got.WeeklyUsageUSD, 1e-6)
+	s.Require().InDelta(0.0, got.DailyUsageUSD, 1e-6, "DailyUsageUSD should be reset to 0")
+	s.Require().InDelta(20.0, got.WeeklyUsageUSD, 1e-6, "WeeklyUsageUSD should remain unchanged")
+	s.Require().Equal(int64(0), got.DailyUsageRequests, "DailyUsageRequests should be reset to 0")
+	s.Require().Equal(int64(200), got.WeeklyUsageRequests, "WeeklyUsageRequests should remain unchanged")
 	s.Require().NotNil(got.DailyWindowStart)
 	s.Require().WithinDuration(resetAt, *got.DailyWindowStart, time.Microsecond)
 }
@@ -399,6 +403,8 @@ func (s *UserSubscriptionRepoSuite) TestResetWeeklyUsage() {
 	sub := s.mustCreateSubscription(user.ID, group.ID, func(c *dbent.UserSubscriptionCreate) {
 		c.SetWeeklyUsageUsd(15.0)
 		c.SetMonthlyUsageUsd(30.0)
+		c.SetWeeklyUsageRequests(150)
+		c.SetMonthlyUsageRequests(300)
 	})
 
 	resetAt := time.Date(2025, 1, 6, 0, 0, 0, 0, time.UTC)
@@ -407,8 +413,10 @@ func (s *UserSubscriptionRepoSuite) TestResetWeeklyUsage() {
 
 	got, err := s.repo.GetByID(s.ctx, sub.ID)
 	s.Require().NoError(err)
-	s.Require().InDelta(0.0, got.WeeklyUsageUSD, 1e-6)
-	s.Require().InDelta(30.0, got.MonthlyUsageUSD, 1e-6)
+	s.Require().InDelta(0.0, got.WeeklyUsageUSD, 1e-6, "WeeklyUsageUSD should be reset to 0")
+	s.Require().InDelta(30.0, got.MonthlyUsageUSD, 1e-6, "MonthlyUsageUSD should remain unchanged")
+	s.Require().Equal(int64(0), got.WeeklyUsageRequests, "WeeklyUsageRequests should be reset to 0")
+	s.Require().Equal(int64(300), got.MonthlyUsageRequests, "MonthlyUsageRequests should remain unchanged")
 	s.Require().NotNil(got.WeeklyWindowStart)
 	s.Require().WithinDuration(resetAt, *got.WeeklyWindowStart, time.Microsecond)
 }
@@ -418,6 +426,7 @@ func (s *UserSubscriptionRepoSuite) TestResetMonthlyUsage() {
 	group := s.mustCreateGroup("g-resetm")
 	sub := s.mustCreateSubscription(user.ID, group.ID, func(c *dbent.UserSubscriptionCreate) {
 		c.SetMonthlyUsageUsd(25.0)
+		c.SetMonthlyUsageRequests(250)
 	})
 
 	resetAt := time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
@@ -426,7 +435,8 @@ func (s *UserSubscriptionRepoSuite) TestResetMonthlyUsage() {
 
 	got, err := s.repo.GetByID(s.ctx, sub.ID)
 	s.Require().NoError(err)
-	s.Require().InDelta(0.0, got.MonthlyUsageUSD, 1e-6)
+	s.Require().InDelta(0.0, got.MonthlyUsageUSD, 1e-6, "MonthlyUsageUSD should be reset to 0")
+	s.Require().Equal(int64(0), got.MonthlyUsageRequests, "MonthlyUsageRequests should be reset to 0")
 	s.Require().NotNil(got.MonthlyWindowStart)
 	s.Require().WithinDuration(resetAt, *got.MonthlyWindowStart, time.Microsecond)
 }
@@ -677,7 +687,7 @@ func (s *UserSubscriptionRepoSuite) TestIncrementUsage_Concurrent() {
 	group := s.mustCreateGroup("g-concurrent")
 	sub := s.mustCreateSubscription(user.ID, group.ID, nil)
 
-	const numGoroutines = 10
+	const numGoroutines = 100
 	const incrementPerGoroutine = 1.5
 
 	// 启动多个 goroutine 并发调用 IncrementUsage
@@ -743,5 +753,116 @@ func (s *UserSubscriptionRepoSuite) TestTxContext_RollbackIsolation() {
 	tx = nil
 
 	_, err = repo.GetByID(context.Background(), sub.ID)
+	s.Require().ErrorIs(err, service.ErrSubscriptionNotFound)
+}
+
+// --- 请求次数用量测试 (per_request 计费) ---
+
+func (s *UserSubscriptionRepoSuite) TestIncrementRequestUsage() {
+	user := s.mustCreateUser("requsage@test.com", service.RoleUser)
+	group := s.mustCreateGroup("g-requsage")
+	sub := s.mustCreateSubscription(user.ID, group.ID, nil)
+
+	err := s.repo.IncrementRequestUsage(s.ctx, sub.ID, 5)
+	s.Require().NoError(err, "IncrementRequestUsage")
+
+	got, err := s.repo.GetByID(s.ctx, sub.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(int64(5), got.DailyUsageRequests, "daily requests should be incremented")
+	s.Require().Equal(int64(5), got.WeeklyUsageRequests, "weekly requests should be incremented")
+	s.Require().Equal(int64(5), got.MonthlyUsageRequests, "monthly requests should be incremented")
+}
+
+func (s *UserSubscriptionRepoSuite) TestIncrementRequestUsage_Accumulates() {
+	user := s.mustCreateUser("reqaccum@test.com", service.RoleUser)
+	group := s.mustCreateGroup("g-reqaccum")
+	sub := s.mustCreateSubscription(user.ID, group.ID, nil)
+
+	s.Require().NoError(s.repo.IncrementRequestUsage(s.ctx, sub.ID, 3))
+	s.Require().NoError(s.repo.IncrementRequestUsage(s.ctx, sub.ID, 7))
+
+	got, err := s.repo.GetByID(s.ctx, sub.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(int64(10), got.DailyUsageRequests, "daily requests should accumulate")
+	s.Require().Equal(int64(10), got.WeeklyUsageRequests, "weekly requests should accumulate")
+	s.Require().Equal(int64(10), got.MonthlyUsageRequests, "monthly requests should accumulate")
+}
+
+func (s *UserSubscriptionRepoSuite) TestIncrementRequestUsage_NotFound() {
+	err := s.repo.IncrementRequestUsage(s.ctx, 999999, 1)
+	s.Require().Error(err, "should fail for non-existent subscription")
+	s.Require().ErrorIs(err, service.ErrSubscriptionNotFound)
+}
+
+func (s *UserSubscriptionRepoSuite) TestIncrementRequestUsage_Concurrent() {
+	user := s.mustCreateUser("reqconcurrent@test.com", service.RoleUser)
+	group := s.mustCreateGroup("g-reqconcurrent")
+	sub := s.mustCreateSubscription(user.ID, group.ID, nil)
+
+	const numGoroutines = 150
+	const incrementPerGoroutine = 2
+
+	errCh := make(chan error, numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			errCh <- s.repo.IncrementRequestUsage(s.ctx, sub.ID, incrementPerGoroutine)
+		}()
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		err := <-errCh
+		s.Require().NoError(err, "IncrementRequestUsage should succeed")
+	}
+
+	got, err := s.repo.GetByID(s.ctx, sub.ID)
+	s.Require().NoError(err)
+	expectedRequests := int64(numGoroutines) * incrementPerGoroutine
+	s.Require().Equal(expectedRequests, got.DailyUsageRequests, "daily requests should be correctly accumulated under concurrency")
+	s.Require().Equal(expectedRequests, got.WeeklyUsageRequests, "weekly requests should be correctly accumulated under concurrency")
+	s.Require().Equal(expectedRequests, got.MonthlyUsageRequests, "monthly requests should be correctly accumulated under concurrency")
+}
+
+func (s *UserSubscriptionRepoSuite) TestAdjustRequestUsage() {
+	user := s.mustCreateUser("reqadjust@test.com", service.RoleUser)
+	group := s.mustCreateGroup("g-reqadjust")
+	sub := s.mustCreateSubscription(user.ID, group.ID, func(c *dbent.UserSubscriptionCreate) {
+		c.SetDailyUsageRequests(100)
+		c.SetWeeklyUsageRequests(500)
+	})
+
+	daily := int64(50)
+	weekly := int64(250)
+	input := &service.AdminAdjustRequestUsageInput{
+		DailyUsageRequests:  &daily,
+		WeeklyUsageRequests: &weekly,
+	}
+
+	err := s.repo.AdjustRequestUsage(s.ctx, sub.ID, input)
+	s.Require().NoError(err, "AdjustRequestUsage")
+
+	got, err := s.repo.GetByID(s.ctx, sub.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(int64(50), got.DailyUsageRequests, "daily requests should be adjusted")
+	s.Require().Equal(int64(250), got.WeeklyUsageRequests, "weekly requests should be adjusted")
+	s.Require().Equal(int64(0), got.MonthlyUsageRequests, "monthly requests should remain at default 0")
+}
+
+func (s *UserSubscriptionRepoSuite) TestAdjustRequestUsage_NilInput() {
+	user := s.mustCreateUser("reqnil@test.com", service.RoleUser)
+	group := s.mustCreateGroup("g-reqnil")
+	sub := s.mustCreateSubscription(user.ID, group.ID, nil)
+
+	err := s.repo.AdjustRequestUsage(s.ctx, sub.ID, nil)
+	s.Require().Error(err, "AdjustRequestUsage should fail with nil input")
+	s.Require().ErrorIs(err, service.ErrSubscriptionNilInput)
+}
+
+func (s *UserSubscriptionRepoSuite) TestAdjustRequestUsage_NotFound() {
+	daily := int64(10)
+	input := &service.AdminAdjustRequestUsageInput{
+		DailyUsageRequests: &daily,
+	}
+	err := s.repo.AdjustRequestUsage(s.ctx, 999999, input)
+	s.Require().Error(err, "AdjustRequestUsage should fail for non-existent subscription")
 	s.Require().ErrorIs(err, service.ErrSubscriptionNotFound)
 }

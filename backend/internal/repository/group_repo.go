@@ -46,6 +46,10 @@ func (r *groupRepository) Create(ctx context.Context, groupIn *service.Group) er
 		SetNillableDailyLimitUsd(groupIn.DailyLimitUSD).
 		SetNillableWeeklyLimitUsd(groupIn.WeeklyLimitUSD).
 		SetNillableMonthlyLimitUsd(groupIn.MonthlyLimitUSD).
+		SetNillablePerRequestPrice(groupIn.PerRequestPrice).
+		SetNillableDailyLimitRequests(groupIn.DailyLimitRequests).
+		SetNillableWeeklyLimitRequests(groupIn.WeeklyLimitRequests).
+		SetNillableMonthlyLimitRequests(groupIn.MonthlyLimitRequests).
 		SetNillableImagePrice1k(groupIn.ImagePrice1K).
 		SetNillableImagePrice2k(groupIn.ImagePrice2K).
 		SetNillableImagePrice4k(groupIn.ImagePrice4K).
@@ -119,6 +123,10 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		SetNillableDailyLimitUsd(groupIn.DailyLimitUSD).
 		SetNillableWeeklyLimitUsd(groupIn.WeeklyLimitUSD).
 		SetNillableMonthlyLimitUsd(groupIn.MonthlyLimitUSD).
+		SetNillablePerRequestPrice(groupIn.PerRequestPrice).
+		SetNillableDailyLimitRequests(groupIn.DailyLimitRequests).
+		SetNillableWeeklyLimitRequests(groupIn.WeeklyLimitRequests).
+		SetNillableMonthlyLimitRequests(groupIn.MonthlyLimitRequests).
 		SetNillableImagePrice1k(groupIn.ImagePrice1K).
 		SetNillableImagePrice2k(groupIn.ImagePrice2K).
 		SetNillableImagePrice4k(groupIn.ImagePrice4K).
@@ -151,6 +159,27 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		builder = builder.SetMonthlyLimitUsd(*groupIn.MonthlyLimitUSD)
 	} else {
 		builder = builder.ClearMonthlyLimitUsd()
+	}
+	// 处理按次计费字段
+	if groupIn.PerRequestPrice != nil {
+		builder = builder.SetPerRequestPrice(*groupIn.PerRequestPrice)
+	} else {
+		builder = builder.ClearPerRequestPrice()
+	}
+	if groupIn.DailyLimitRequests != nil {
+		builder = builder.SetDailyLimitRequests(*groupIn.DailyLimitRequests)
+	} else {
+		builder = builder.ClearDailyLimitRequests()
+	}
+	if groupIn.WeeklyLimitRequests != nil {
+		builder = builder.SetWeeklyLimitRequests(*groupIn.WeeklyLimitRequests)
+	} else {
+		builder = builder.ClearWeeklyLimitRequests()
+	}
+	if groupIn.MonthlyLimitRequests != nil {
+		builder = builder.SetMonthlyLimitRequests(*groupIn.MonthlyLimitRequests)
+	} else {
+		builder = builder.ClearMonthlyLimitRequests()
 	}
 	if groupIn.ImagePrice1K != nil {
 		builder = builder.SetImagePrice1k(*groupIn.ImagePrice1K)

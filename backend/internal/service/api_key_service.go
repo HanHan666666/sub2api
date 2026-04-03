@@ -163,6 +163,11 @@ type CreateAPIKeyRequest struct {
 	RateLimit5h float64 `json:"rate_limit_5h"`
 	RateLimit1d float64 `json:"rate_limit_1d"`
 	RateLimit7d float64 `json:"rate_limit_7d"`
+
+	// Request count rate limit fields (nil = unlimited)
+	RateLimitRequests5h *int64 `json:"rate_limit_requests_5h"`
+	RateLimitRequests1d *int64 `json:"rate_limit_requests_1d"`
+	RateLimitRequests7d *int64 `json:"rate_limit_requests_7d"`
 }
 
 // UpdateAPIKeyRequest 更新API Key请求
@@ -184,6 +189,12 @@ type UpdateAPIKeyRequest struct {
 	RateLimit1d         *float64 `json:"rate_limit_1d"`
 	RateLimit7d         *float64 `json:"rate_limit_7d"`
 	ResetRateLimitUsage *bool    `json:"reset_rate_limit_usage"` // Reset all usage counters to 0
+
+	// Request count rate limit fields (nil = no change)
+	RateLimitRequests5h   *int64 `json:"rate_limit_requests_5h"`
+	RateLimitRequests1d   *int64 `json:"rate_limit_requests_1d"`
+	RateLimitRequests7d   *int64 `json:"rate_limit_requests_7d"`
+	ResetRequestRateLimit *bool  `json:"reset_request_rate_limit"` // Reset request count usage to 0
 }
 
 // APIKeyService API Key服务

@@ -364,6 +364,9 @@ func (s *billingCacheStub) UpdateAPIKeyRateLimitUsage(ctx context.Context, keyID
 func (s *billingCacheStub) InvalidateAPIKeyRateLimit(ctx context.Context, keyID int64) error {
 	panic("unexpected InvalidateAPIKeyRateLimit call")
 }
+func (s *billingCacheStub) IncrementSubscriptionRequestUsage(ctx context.Context, userID, groupID int64, count int64) error {
+	panic("unexpected IncrementSubscriptionRequestUsage call")
+}
 
 func waitForInvalidations(t *testing.T, ch <-chan subscriptionInvalidateCall, expected int) []subscriptionInvalidateCall {
 	t.Helper()

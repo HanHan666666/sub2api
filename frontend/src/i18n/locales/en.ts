@@ -690,6 +690,12 @@ export default {
       quota_exhausted: 'Quota Exhausted',
       expired: 'Expired',
     },
+    // 请求次数限速
+    rateLimitRequests: 'Request Count Rate Limits',
+    requestUsage5h: 'Requests (5h)',
+    requestUsage1d: 'Requests (1d)',
+    requestUsage7d: 'Requests (7d)',
+    noLimit: 'No limit'
   },
 
   // Usage
@@ -769,7 +775,13 @@ export default {
     exportExcelSuccess: 'Usage data exported successfully (Excel format)',
     exportExcelFailed: 'Failed to export usage data',
     imageUnit: ' images',
-    userAgent: 'User-Agent'
+    userAgent: 'User-Agent',
+    billingType: {
+      balance: 'Balance',
+      subscription: 'Subscription',
+      perRequest: 'Per Request'
+    },
+    perRequestCost: 'Per Request Cost'
   },
 
   // Redeem
@@ -1620,16 +1632,26 @@ export default {
         title: 'Subscription Settings',
         type: 'Billing Type',
         typeHint:
-          'Standard billing deducts from user balance. Subscription mode uses quota limits instead.',
+          'Standard billing deducts from user balance. Subscription mode uses quota limits instead. Per-request mode charges by fixed request price or request count limits.',
         typeNotEditable: 'Billing type cannot be changed after group creation.',
         standard: 'Standard (Balance)',
         subscription: 'Subscription (Quota)',
+        perRequest: 'Per Request (Count)',
         dailyLimit: 'Daily Limit (USD)',
         weeklyLimit: 'Weekly Limit (USD)',
         monthlyLimit: 'Monthly Limit (USD)',
         defaultValidityDays: 'Default Validity (Days)',
         validityHint: 'Number of days the subscription is valid when assigned to a user',
         noLimit: 'No limit'
+      },
+      perRequest: {
+        price: 'Per Request Price (USD)',
+        priceHint: 'Leave empty if this group is controlled only by request limits',
+        dailyLimit: 'Daily Request Limit',
+        weeklyLimit: 'Weekly Request Limit',
+        monthlyLimit: 'Monthly Request Limit',
+        noLimit: 'No limit',
+        requirePriceOrLimit: 'Per-request mode requires either a price or at least one request limit'
       },
       imagePricing: {
         title: 'Image Generation Pricing',
@@ -1751,6 +1773,7 @@ export default {
         user: 'User',
         group: 'Group',
         usage: 'Usage',
+        requestUsage: 'Request Usage',
         expires: 'Expires',
         status: 'Status',
         actions: 'Actions'
@@ -3257,6 +3280,7 @@ export default {
       allBillingTypes: 'All Billing Types',
       billingTypeBalance: 'Balance',
       billingTypeSubscription: 'Subscription',
+      billingTypePerRequest: 'Per Request',
       ipAddress: 'IP',
       clickToViewBalance: 'Click to view balance history',
       failedToLoadUser: 'Failed to load user info',
@@ -4767,7 +4791,14 @@ export default {
     expiresOn: 'Expires on {date}',
     resetIn: 'Resets in {time}',
     windowNotActive: 'Awaiting first use',
-    usageOf: '{used} of {limit}'
+    usageOf: '{used} of {limit}',
+    // 按次计费相关
+    perRequestPrice: 'Price per Request',
+    request: 'request',
+    requests: 'requests',
+    dailyRequests: 'Daily Requests',
+    weeklyRequests: 'Weekly Requests',
+    monthlyRequests: 'Monthly Requests'
   },
 
   // Onboarding Tour

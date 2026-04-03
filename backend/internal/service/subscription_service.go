@@ -37,6 +37,13 @@ var (
 	ErrMonthlyLimitExceeded       = infraerrors.TooManyRequests("MONTHLY_LIMIT_EXCEEDED", "monthly usage limit exceeded")
 	ErrSubscriptionNilInput       = infraerrors.BadRequest("SUBSCRIPTION_NIL_INPUT", "subscription input cannot be nil")
 	ErrAdjustWouldExpire          = infraerrors.BadRequest("ADJUST_WOULD_EXPIRE", "adjustment would result in expired subscription (remaining days must be > 0)")
+	ErrDailyRequestLimitExceeded  = infraerrors.TooManyRequests("DAILY_REQUEST_LIMIT_EXCEEDED", "daily request limit exceeded")
+	ErrWeeklyRequestLimitExceeded = infraerrors.TooManyRequests("WEEKLY_REQUEST_LIMIT_EXCEEDED", "weekly request limit exceeded")
+	ErrMonthlyRequestLimitExceeded = infraerrors.TooManyRequests("MONTHLY_REQUEST_LIMIT_EXCEEDED", "monthly request limit exceeded")
+	ErrGroupNotPerRequestType     = infraerrors.BadRequest("GROUP_NOT_PER_REQUEST_TYPE", "group is not a per_request type")
+	ErrInvalidRequestUsageValue   = infraerrors.BadRequest("INVALID_REQUEST_USAGE_VALUE", "request usage value must be >= 0")
+	ErrRequestUsageExceedsLimit   = infraerrors.BadRequest("REQUEST_USAGE_EXCEEDS_LIMIT", "adjusted request usage exceeds group limit")
+	ErrNoRequestUsageFields       = infraerrors.BadRequest("NO_REQUEST_USAGE_FIELDS", "at least one request usage field must be provided")
 )
 
 // SubscriptionService 订阅服务
@@ -167,12 +174,12 @@ func (s *SubscriptionService) AssignSubscription(ctx context.Context, input *Ass
 //
 // 如果没有订阅：创建新订阅
 func (s *SubscriptionService) AssignOrExtendSubscription(ctx context.Context, input *AssignSubscriptionInput) (*UserSubscription, bool, error) {
-	// 检查分组是否存在且为订阅类型
+	// 检查分组是否存在且为订阅类型或按次计费类型
 	group, err := s.groupRepo.GetByID(ctx, input.GroupID)
 	if err != nil {
 		return nil, false, fmt.Errorf("group not found: %w", err)
 	}
-	if !group.IsSubscriptionType() {
+	if !group.IsSubscriptionType() && !group.IsPerRequestType() {
 		return nil, false, ErrGroupNotSubscriptionType
 	}
 
@@ -381,12 +388,12 @@ func (s *SubscriptionService) BulkAssignSubscription(ctx context.Context, input 
 }
 
 func (s *SubscriptionService) assignSubscriptionWithReuse(ctx context.Context, input *AssignSubscriptionInput) (*UserSubscription, bool, error) {
-	// 检查分组是否存在且为订阅类型
+	// 检查分组是否存在且为订阅类型或按次计费类型
 	group, err := s.groupRepo.GetByID(ctx, input.GroupID)
 	if err != nil {
 		return nil, false, fmt.Errorf("group not found: %w", err)
 	}
-	if !group.IsSubscriptionType() {
+	if !group.IsSubscriptionType() && !group.IsPerRequestType() {
 		return nil, false, ErrGroupNotSubscriptionType
 	}
 
@@ -817,30 +824,48 @@ func (s *SubscriptionService) ValidateAndCheckLimits(sub *UserSubscription, grou
 	//    实际的 DB 窗口重置由 DoWindowMaintenance 异步完成
 	if sub.NeedsDailyReset() {
 		sub.DailyUsageUSD = 0
+		sub.DailyUsageRequests = 0 // 新增：同时清零请求次数
 		needsMaintenance = true
 	}
 	if sub.NeedsWeeklyReset() {
 		sub.WeeklyUsageUSD = 0
+		sub.WeeklyUsageRequests = 0 // 新增：同时清零请求次数
 		needsMaintenance = true
 	}
 	if sub.NeedsMonthlyReset() {
 		sub.MonthlyUsageUSD = 0
+		sub.MonthlyUsageRequests = 0 // 新增：同时清零请求次数
 		needsMaintenance = true
 	}
 	if !sub.IsWindowActivated() {
 		needsMaintenance = true
 	}
 
-	// 3. 检查用量限额
-	if !sub.CheckDailyLimit(group, 0) {
-		return needsMaintenance, ErrDailyLimitExceeded
+	// 3. 根据计费模式选择限额检查
+	if group.IsPerRequestType() {
+		// 按次计费限额检查
+		if err := sub.CheckDailyLimitRequests(group, 1); err != nil {
+			return needsMaintenance, err
+		}
+		if err := sub.CheckWeeklyLimitRequests(group, 1); err != nil {
+			return needsMaintenance, err
+		}
+		if err := sub.CheckMonthlyLimitRequests(group, 1); err != nil {
+			return needsMaintenance, err
+		}
+	} else if group.IsSubscriptionType() {
+		// 原有 USD 限额检查
+		if !sub.CheckDailyLimit(group, 0) {
+			return needsMaintenance, ErrDailyLimitExceeded
+		}
+		if !sub.CheckWeeklyLimit(group, 0) {
+			return needsMaintenance, ErrWeeklyLimitExceeded
+		}
+		if !sub.CheckMonthlyLimit(group, 0) {
+			return needsMaintenance, ErrMonthlyLimitExceeded
+		}
 	}
-	if !sub.CheckWeeklyLimit(group, 0) {
-		return needsMaintenance, ErrWeeklyLimitExceeded
-	}
-	if !sub.CheckMonthlyLimit(group, 0) {
-		return needsMaintenance, ErrMonthlyLimitExceeded
-	}
+	// standard 模式不经过此方法
 
 	return needsMaintenance, nil
 }
@@ -901,9 +926,13 @@ type SubscriptionProgress struct {
 	Daily         *UsageWindowProgress `json:"daily,omitempty"`
 	Weekly        *UsageWindowProgress `json:"weekly,omitempty"`
 	Monthly       *UsageWindowProgress `json:"monthly,omitempty"`
+	// 新增：次数用量进度（per_request 模式）
+	DailyRequests   *RequestProgress `json:"daily_requests,omitempty"`
+	WeeklyRequests  *RequestProgress `json:"weekly_requests,omitempty"`
+	MonthlyRequests *RequestProgress `json:"monthly_requests,omitempty"`
 }
 
-// UsageWindowProgress 使用窗口进度
+// UsageWindowProgress 使用窗口进度（USD 限额）
 type UsageWindowProgress struct {
 	LimitUSD        float64   `json:"limit_usd"`
 	UsedUSD         float64   `json:"used_usd"`
@@ -912,6 +941,14 @@ type UsageWindowProgress struct {
 	WindowStart     time.Time `json:"window_start"`
 	ResetsAt        time.Time `json:"resets_at"`
 	ResetsInSeconds int64     `json:"resets_in_seconds"`
+}
+
+// RequestProgress 请求次数进度（per_request 模式）
+type RequestProgress struct {
+	Used           int64  `json:"used"`
+	Limit          *int64 `json:"limit"`           // nil=不限制
+	Percentage     float64 `json:"percentage"`      // 0-100
+	ResetInSeconds int64  `json:"reset_in_seconds"` // 距窗口重置的秒数
 }
 
 // GetSubscriptionProgress 获取订阅使用进度
@@ -941,75 +978,131 @@ func (s *SubscriptionService) calculateProgress(sub *UserSubscription, group *Gr
 		ExpiresInDays: sub.DaysRemaining(),
 	}
 
-	// 日进度
-	if group.HasDailyLimit() && sub.DailyWindowStart != nil {
-		limit := *group.DailyLimitUSD
-		resetsAt := sub.DailyWindowStart.Add(24 * time.Hour)
-		progress.Daily = &UsageWindowProgress{
-			LimitUSD:        limit,
-			UsedUSD:         sub.DailyUsageUSD,
-			RemainingUSD:    limit - sub.DailyUsageUSD,
-			Percentage:      (sub.DailyUsageUSD / limit) * 100,
-			WindowStart:     *sub.DailyWindowStart,
-			ResetsAt:        resetsAt,
-			ResetsInSeconds: int64(time.Until(resetsAt).Seconds()),
+	// 根据计费模式选择进度计算
+	if group.IsPerRequestType() {
+		// 按次计费：填充请求次数进度
+		if group.HasDailyLimitRequests() && sub.DailyWindowStart != nil {
+			limit := *group.DailyLimitRequests
+			percentage := float64(0)
+			if limit > 0 {
+				percentage = (float64(sub.DailyUsageRequests) / float64(limit)) * 100
+			}
+			if percentage > 100 {
+				percentage = 100
+			}
+			progress.DailyRequests = &RequestProgress{
+				Used:           sub.DailyUsageRequests,
+				Limit:          group.DailyLimitRequests,
+				Percentage:     percentage,
+				ResetInSeconds: sub.GetDailyResetInSeconds(),
+			}
 		}
-		if progress.Daily.RemainingUSD < 0 {
-			progress.Daily.RemainingUSD = 0
-		}
-		if progress.Daily.Percentage > 100 {
-			progress.Daily.Percentage = 100
-		}
-		if progress.Daily.ResetsInSeconds < 0 {
-			progress.Daily.ResetsInSeconds = 0
-		}
-	}
 
-	// 周进度
-	if group.HasWeeklyLimit() && sub.WeeklyWindowStart != nil {
-		limit := *group.WeeklyLimitUSD
-		resetsAt := sub.WeeklyWindowStart.Add(7 * 24 * time.Hour)
-		progress.Weekly = &UsageWindowProgress{
-			LimitUSD:        limit,
-			UsedUSD:         sub.WeeklyUsageUSD,
-			RemainingUSD:    limit - sub.WeeklyUsageUSD,
-			Percentage:      (sub.WeeklyUsageUSD / limit) * 100,
-			WindowStart:     *sub.WeeklyWindowStart,
-			ResetsAt:        resetsAt,
-			ResetsInSeconds: int64(time.Until(resetsAt).Seconds()),
+		if group.HasWeeklyLimitRequests() && sub.WeeklyWindowStart != nil {
+			limit := *group.WeeklyLimitRequests
+			percentage := float64(0)
+			if limit > 0 {
+				percentage = (float64(sub.WeeklyUsageRequests) / float64(limit)) * 100
+			}
+			if percentage > 100 {
+				percentage = 100
+			}
+			progress.WeeklyRequests = &RequestProgress{
+				Used:           sub.WeeklyUsageRequests,
+				Limit:          group.WeeklyLimitRequests,
+				Percentage:     percentage,
+				ResetInSeconds: sub.GetWeeklyResetInSeconds(),
+			}
 		}
-		if progress.Weekly.RemainingUSD < 0 {
-			progress.Weekly.RemainingUSD = 0
-		}
-		if progress.Weekly.Percentage > 100 {
-			progress.Weekly.Percentage = 100
-		}
-		if progress.Weekly.ResetsInSeconds < 0 {
-			progress.Weekly.ResetsInSeconds = 0
-		}
-	}
 
-	// 月进度
-	if group.HasMonthlyLimit() && sub.MonthlyWindowStart != nil {
-		limit := *group.MonthlyLimitUSD
-		resetsAt := sub.MonthlyWindowStart.Add(30 * 24 * time.Hour)
-		progress.Monthly = &UsageWindowProgress{
-			LimitUSD:        limit,
-			UsedUSD:         sub.MonthlyUsageUSD,
-			RemainingUSD:    limit - sub.MonthlyUsageUSD,
-			Percentage:      (sub.MonthlyUsageUSD / limit) * 100,
-			WindowStart:     *sub.MonthlyWindowStart,
-			ResetsAt:        resetsAt,
-			ResetsInSeconds: int64(time.Until(resetsAt).Seconds()),
+		if group.HasMonthlyLimitRequests() && sub.MonthlyWindowStart != nil {
+			limit := *group.MonthlyLimitRequests
+			percentage := float64(0)
+			if limit > 0 {
+				percentage = (float64(sub.MonthlyUsageRequests) / float64(limit)) * 100
+			}
+			if percentage > 100 {
+				percentage = 100
+			}
+			progress.MonthlyRequests = &RequestProgress{
+				Used:           sub.MonthlyUsageRequests,
+				Limit:          group.MonthlyLimitRequests,
+				Percentage:     percentage,
+				ResetInSeconds: sub.GetMonthlyResetInSeconds(),
+			}
 		}
-		if progress.Monthly.RemainingUSD < 0 {
-			progress.Monthly.RemainingUSD = 0
+	} else {
+		// 非按次计费模式：填充 USD 进度（兼容 subscription 和 standard 模式）
+		// 日进度
+		if group.HasDailyLimit() && sub.DailyWindowStart != nil {
+			limit := *group.DailyLimitUSD
+			resetsAt := sub.DailyWindowStart.Add(24 * time.Hour)
+			progress.Daily = &UsageWindowProgress{
+				LimitUSD:        limit,
+				UsedUSD:         sub.DailyUsageUSD,
+				RemainingUSD:    limit - sub.DailyUsageUSD,
+				Percentage:      (sub.DailyUsageUSD / limit) * 100,
+				WindowStart:     *sub.DailyWindowStart,
+				ResetsAt:        resetsAt,
+				ResetsInSeconds: int64(time.Until(resetsAt).Seconds()),
+			}
+			if progress.Daily.RemainingUSD < 0 {
+				progress.Daily.RemainingUSD = 0
+			}
+			if progress.Daily.Percentage > 100 {
+				progress.Daily.Percentage = 100
+			}
+			if progress.Daily.ResetsInSeconds < 0 {
+				progress.Daily.ResetsInSeconds = 0
+			}
 		}
-		if progress.Monthly.Percentage > 100 {
-			progress.Monthly.Percentage = 100
+
+		// 周进度
+		if group.HasWeeklyLimit() && sub.WeeklyWindowStart != nil {
+			limit := *group.WeeklyLimitUSD
+			resetsAt := sub.WeeklyWindowStart.Add(7 * 24 * time.Hour)
+			progress.Weekly = &UsageWindowProgress{
+				LimitUSD:        limit,
+				UsedUSD:         sub.WeeklyUsageUSD,
+				RemainingUSD:    limit - sub.WeeklyUsageUSD,
+				Percentage:      (sub.WeeklyUsageUSD / limit) * 100,
+				WindowStart:     *sub.WeeklyWindowStart,
+				ResetsAt:        resetsAt,
+				ResetsInSeconds: int64(time.Until(resetsAt).Seconds()),
+			}
+			if progress.Weekly.RemainingUSD < 0 {
+				progress.Weekly.RemainingUSD = 0
+			}
+			if progress.Weekly.Percentage > 100 {
+				progress.Weekly.Percentage = 100
+			}
+			if progress.Weekly.ResetsInSeconds < 0 {
+				progress.Weekly.ResetsInSeconds = 0
+			}
 		}
-		if progress.Monthly.ResetsInSeconds < 0 {
-			progress.Monthly.ResetsInSeconds = 0
+
+		// 月进度
+		if group.HasMonthlyLimit() && sub.MonthlyWindowStart != nil {
+			limit := *group.MonthlyLimitUSD
+			resetsAt := sub.MonthlyWindowStart.Add(30 * 24 * time.Hour)
+			progress.Monthly = &UsageWindowProgress{
+				LimitUSD:        limit,
+				UsedUSD:         sub.MonthlyUsageUSD,
+				RemainingUSD:    limit - sub.MonthlyUsageUSD,
+				Percentage:      (sub.MonthlyUsageUSD / limit) * 100,
+				WindowStart:     *sub.MonthlyWindowStart,
+				ResetsAt:        resetsAt,
+				ResetsInSeconds: int64(time.Until(resetsAt).Seconds()),
+			}
+			if progress.Monthly.RemainingUSD < 0 {
+				progress.Monthly.RemainingUSD = 0
+			}
+			if progress.Monthly.Percentage > 100 {
+				progress.Monthly.Percentage = 100
+			}
+			if progress.Monthly.ResetsInSeconds < 0 {
+				progress.Monthly.ResetsInSeconds = 0
+			}
 		}
 	}
 
@@ -1051,4 +1144,82 @@ func (s *SubscriptionService) ValidateSubscription(ctx context.Context, sub *Use
 		return ErrSubscriptionExpired
 	}
 	return nil
+}
+
+// AdminAdjustRequestUsageInput 管理员调整请求次数用量输入
+type AdminAdjustRequestUsageInput struct {
+	DailyUsageRequests   *int64
+	WeeklyUsageRequests  *int64
+	MonthlyUsageRequests *int64
+}
+
+// AdminAdjustRequestUsage 管理员手动调整请求次数用量
+// 用于补偿和修复场景
+func (s *SubscriptionService) AdminAdjustRequestUsage(
+	ctx context.Context,
+	subscriptionID int64,
+	input *AdminAdjustRequestUsageInput,
+) (*UserSubscription, error) {
+	// 1. 验证输入：至少提供一个字段
+	if input.DailyUsageRequests == nil && input.WeeklyUsageRequests == nil && input.MonthlyUsageRequests == nil {
+		return nil, ErrNoRequestUsageFields
+	}
+
+	// 2. 验证所有值必须 >= 0
+	if input.DailyUsageRequests != nil && *input.DailyUsageRequests < 0 {
+		return nil, ErrInvalidRequestUsageValue
+	}
+	if input.WeeklyUsageRequests != nil && *input.WeeklyUsageRequests < 0 {
+		return nil, ErrInvalidRequestUsageValue
+	}
+	if input.MonthlyUsageRequests != nil && *input.MonthlyUsageRequests < 0 {
+		return nil, ErrInvalidRequestUsageValue
+	}
+
+	// 3. 获取订阅和分组
+	sub, err := s.userSubRepo.GetByID(ctx, subscriptionID)
+	if err != nil {
+		return nil, ErrSubscriptionNotFound
+	}
+
+	group, err := s.groupRepo.GetByID(ctx, sub.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("group not found: %w", err)
+	}
+
+	// 4. 仅 per_request 分组允许调用
+	if !group.IsPerRequestType() {
+		return nil, ErrGroupNotPerRequestType
+	}
+
+	// 5. 验证不超过分组限额
+	if input.DailyUsageRequests != nil && group.HasDailyLimitRequests() {
+		if *input.DailyUsageRequests > *group.DailyLimitRequests {
+			return nil, ErrRequestUsageExceedsLimit
+		}
+	}
+	if input.WeeklyUsageRequests != nil && group.HasWeeklyLimitRequests() {
+		if *input.WeeklyUsageRequests > *group.WeeklyLimitRequests {
+			return nil, ErrRequestUsageExceedsLimit
+		}
+	}
+	if input.MonthlyUsageRequests != nil && group.HasMonthlyLimitRequests() {
+		if *input.MonthlyUsageRequests > *group.MonthlyLimitRequests {
+			return nil, ErrRequestUsageExceedsLimit
+		}
+	}
+
+	// 6. 执行调整
+	if err := s.userSubRepo.AdjustRequestUsage(ctx, subscriptionID, input); err != nil {
+		return nil, err
+	}
+
+	// 7. 失效缓存
+	s.InvalidateSubCache(sub.UserID, sub.GroupID)
+	if s.billingCacheService != nil {
+		_ = s.billingCacheService.InvalidateSubscription(ctx, sub.UserID, sub.GroupID)
+	}
+
+	// 8. 返回更新后的订阅
+	return s.userSubRepo.GetByID(ctx, subscriptionID)
 }

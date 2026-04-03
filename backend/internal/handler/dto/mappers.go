@@ -97,6 +97,16 @@ func APIKeyFromService(k *service.APIKey) *APIKey {
 		Window7dStart: k.Window7dStart,
 		User:          UserFromServiceShallow(k.User),
 		Group:         GroupFromServiceShallow(k.Group),
+		// Request count rate limit fields
+		RateLimitRequests5h:   k.RateLimitRequests5h,
+		RateLimitRequests1d:   k.RateLimitRequests1d,
+		RateLimitRequests7d:   k.RateLimitRequests7d,
+		UsageRequests5h:       k.UsageRequests5h,
+		UsageRequests1d:       k.UsageRequests1d,
+		UsageRequests7d:       k.UsageRequests7d,
+		WindowRequests5hStart: k.WindowRequests5hStart,
+		WindowRequests1dStart: k.WindowRequests1dStart,
+		WindowRequests7dStart: k.WindowRequests7dStart,
 	}
 	if k.Window5hStart != nil && !service.IsWindowExpired(k.Window5hStart, service.RateLimitWindow5h) {
 		t := k.Window5hStart.Add(service.RateLimitWindow5h)
@@ -109,6 +119,19 @@ func APIKeyFromService(k *service.APIKey) *APIKey {
 	if k.Window7dStart != nil && !service.IsWindowExpired(k.Window7dStart, service.RateLimitWindow7d) {
 		t := k.Window7dStart.Add(service.RateLimitWindow7d)
 		out.Reset7dAt = &t
+	}
+	// Request count reset times
+	if k.WindowRequests5hStart != nil && !service.IsWindowExpired(k.WindowRequests5hStart, service.RateLimitWindow5h) {
+		t := k.WindowRequests5hStart.Add(service.RateLimitWindow5h)
+		out.ResetRequests5hAt = &t
+	}
+	if k.WindowRequests1dStart != nil && !service.IsWindowExpired(k.WindowRequests1dStart, service.RateLimitWindow1d) {
+		t := k.WindowRequests1dStart.Add(service.RateLimitWindow1d)
+		out.ResetRequests1dAt = &t
+	}
+	if k.WindowRequests7dStart != nil && !service.IsWindowExpired(k.WindowRequests7dStart, service.RateLimitWindow7d) {
+		t := k.WindowRequests7dStart.Add(service.RateLimitWindow7d)
+		out.ResetRequests7dAt = &t
 	}
 	return out
 }
@@ -169,6 +192,10 @@ func groupFromServiceBase(g *service.Group) Group {
 		DailyLimitUSD:                   g.DailyLimitUSD,
 		WeeklyLimitUSD:                  g.WeeklyLimitUSD,
 		MonthlyLimitUSD:                 g.MonthlyLimitUSD,
+		PerRequestPrice:                 g.PerRequestPrice,
+		DailyLimitRequests:              g.DailyLimitRequests,
+		WeeklyLimitRequests:             g.WeeklyLimitRequests,
+		MonthlyLimitRequests:            g.MonthlyLimitRequests,
 		ImagePrice1K:                    g.ImagePrice1K,
 		ImagePrice2K:                    g.ImagePrice2K,
 		ImagePrice4K:                    g.ImagePrice4K,
@@ -698,6 +725,9 @@ func userSubscriptionFromServiceBase(sub *service.UserSubscription) UserSubscrip
 		DailyUsageUSD:      sub.DailyUsageUSD,
 		WeeklyUsageUSD:     sub.WeeklyUsageUSD,
 		MonthlyUsageUSD:    sub.MonthlyUsageUSD,
+		DailyUsageRequests:   sub.DailyUsageRequests,
+		WeeklyUsageRequests:  sub.WeeklyUsageRequests,
+		MonthlyUsageRequests: sub.MonthlyUsageRequests,
 		CreatedAt:          sub.CreatedAt,
 		UpdatedAt:          sub.UpdatedAt,
 		User:               UserFromServiceShallow(sub.User),

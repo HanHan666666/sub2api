@@ -224,6 +224,13 @@ type ResetSubscriptionQuotaRequest struct {
 	Monthly bool `json:"monthly"`
 }
 
+// AdjustRequestUsageRequest represents the adjust request usage request
+type AdjustRequestUsageRequest struct {
+	DailyUsageRequests   *int64 `json:"daily_usage_requests"`
+	WeeklyUsageRequests  *int64 `json:"weekly_usage_requests"`
+	MonthlyUsageRequests *int64 `json:"monthly_usage_requests"`
+}
+
 // ResetQuota resets daily, weekly, and/or monthly usage for a subscription.
 // POST /api/v1/admin/subscriptions/:id/reset-quota
 func (h *SubscriptionHandler) ResetQuota(c *gin.Context) {
@@ -242,6 +249,36 @@ func (h *SubscriptionHandler) ResetQuota(c *gin.Context) {
 		return
 	}
 	sub, err := h.subscriptionService.AdminResetQuota(c.Request.Context(), subscriptionID, req.Daily, req.Weekly, req.Monthly)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, dto.UserSubscriptionFromServiceAdmin(sub))
+}
+
+// AdjustRequestUsage handles adjusting request usage for a subscription.
+// POST /api/v1/admin/subscriptions/:id/adjust-request-usage
+func (h *SubscriptionHandler) AdjustRequestUsage(c *gin.Context) {
+	subscriptionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid subscription ID")
+		return
+	}
+	var req AdjustRequestUsageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	// 至少提供一个字段
+	if req.DailyUsageRequests == nil && req.WeeklyUsageRequests == nil && req.MonthlyUsageRequests == nil {
+		response.BadRequest(c, "At least one of 'daily_usage_requests', 'weekly_usage_requests', or 'monthly_usage_requests' must be provided")
+		return
+	}
+	sub, err := h.subscriptionService.AdminAdjustRequestUsage(c.Request.Context(), subscriptionID, &service.AdminAdjustRequestUsageInput{
+		DailyUsageRequests:   req.DailyUsageRequests,
+		WeeklyUsageRequests:  req.WeeklyUsageRequests,
+		MonthlyUsageRequests: req.MonthlyUsageRequests,
+	})
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

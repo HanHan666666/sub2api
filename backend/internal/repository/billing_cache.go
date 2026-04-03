@@ -48,12 +48,15 @@ func billingSubKey(userID, groupID int64) string {
 }
 
 const (
-	subFieldStatus       = "status"
-	subFieldExpiresAt    = "expires_at"
-	subFieldDailyUsage   = "daily_usage"
-	subFieldWeeklyUsage  = "weekly_usage"
-	subFieldMonthlyUsage = "monthly_usage"
-	subFieldVersion      = "version"
+	subFieldStatus               = "status"
+	subFieldExpiresAt            = "expires_at"
+	subFieldDailyUsage           = "daily_usage"
+	subFieldWeeklyUsage          = "weekly_usage"
+	subFieldMonthlyUsage         = "monthly_usage"
+	subFieldDailyUsageRequests   = "daily_usage_requests"
+	subFieldWeeklyUsageRequests  = "weekly_usage_requests"
+	subFieldMonthlyUsageRequests = "monthly_usage_requests"
+	subFieldVersion              = "version"
 )
 
 // billingRateLimitKey generates the Redis key for API key rate limit cache.
@@ -91,6 +94,19 @@ var (
 		redis.call('HINCRBYFLOAT', KEYS[1], 'daily_usage', cost)
 		redis.call('HINCRBYFLOAT', KEYS[1], 'weekly_usage', cost)
 		redis.call('HINCRBYFLOAT', KEYS[1], 'monthly_usage', cost)
+		redis.call('EXPIRE', KEYS[1], ARGV[2])
+		return 1
+	`)
+
+	incrementSubRequestUsageScript = redis.NewScript(`
+		local exists = redis.call('EXISTS', KEYS[1])
+		if exists == 0 then
+			return 0
+		end
+		local count = tonumber(ARGV[1])
+		redis.call('HINCRBY', KEYS[1], 'daily_usage_requests', count)
+		redis.call('HINCRBY', KEYS[1], 'weekly_usage_requests', count)
+		redis.call('HINCRBY', KEYS[1], 'monthly_usage_requests', count)
 		redis.call('EXPIRE', KEYS[1], ARGV[2])
 		return 1
 	`)
@@ -210,6 +226,18 @@ func (c *billingCache) parseSubscriptionCache(data map[string]string) (*service.
 		result.MonthlyUsage, _ = strconv.ParseFloat(monthlyStr, 64)
 	}
 
+	if dailyRequestsStr, ok := data[subFieldDailyUsageRequests]; ok {
+		result.DailyUsageRequests, _ = strconv.ParseInt(dailyRequestsStr, 10, 64)
+	}
+
+	if weeklyRequestsStr, ok := data[subFieldWeeklyUsageRequests]; ok {
+		result.WeeklyUsageRequests, _ = strconv.ParseInt(weeklyRequestsStr, 10, 64)
+	}
+
+	if monthlyRequestsStr, ok := data[subFieldMonthlyUsageRequests]; ok {
+		result.MonthlyUsageRequests, _ = strconv.ParseInt(monthlyRequestsStr, 10, 64)
+	}
+
 	if versionStr, ok := data[subFieldVersion]; ok {
 		result.Version, _ = strconv.ParseInt(versionStr, 10, 64)
 	}
@@ -225,12 +253,15 @@ func (c *billingCache) SetSubscriptionCache(ctx context.Context, userID, groupID
 	key := billingSubKey(userID, groupID)
 
 	fields := map[string]any{
-		subFieldStatus:       data.Status,
-		subFieldExpiresAt:    data.ExpiresAt.Unix(),
-		subFieldDailyUsage:   data.DailyUsage,
-		subFieldWeeklyUsage:  data.WeeklyUsage,
-		subFieldMonthlyUsage: data.MonthlyUsage,
-		subFieldVersion:      data.Version,
+		subFieldStatus:               data.Status,
+		subFieldExpiresAt:            data.ExpiresAt.Unix(),
+		subFieldDailyUsage:           data.DailyUsage,
+		subFieldWeeklyUsage:          data.WeeklyUsage,
+		subFieldMonthlyUsage:         data.MonthlyUsage,
+		subFieldDailyUsageRequests:   data.DailyUsageRequests,
+		subFieldWeeklyUsageRequests:  data.WeeklyUsageRequests,
+		subFieldMonthlyUsageRequests: data.MonthlyUsageRequests,
+		subFieldVersion:              data.Version,
 	}
 
 	pipe := c.rdb.Pipeline()
@@ -245,6 +276,16 @@ func (c *billingCache) UpdateSubscriptionUsage(ctx context.Context, userID, grou
 	_, err := updateSubUsageScript.Run(ctx, c.rdb, []string{key}, cost, int(jitteredTTL().Seconds())).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		log.Printf("Warning: update subscription usage cache failed for user %d group %d: %v", userID, groupID, err)
+		return err
+	}
+	return nil
+}
+
+func (c *billingCache) IncrementSubscriptionRequestUsage(ctx context.Context, userID, groupID int64, count int64) error {
+	key := billingSubKey(userID, groupID)
+	_, err := incrementSubRequestUsageScript.Run(ctx, c.rdb, []string{key}, count, int(jitteredTTL().Seconds())).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		log.Printf("Warning: increment subscription request usage cache failed for user %d group %d: %v", userID, groupID, err)
 		return err
 	}
 	return nil

@@ -111,6 +111,9 @@ func (m *mockBillingCache) UpdateAPIKeyRateLimitUsage(context.Context, int64, fl
 func (m *mockBillingCache) InvalidateAPIKeyRateLimit(context.Context, int64) error {
 	return nil
 }
+func (m *mockBillingCache) IncrementSubscriptionRequestUsage(context.Context, int64, int64, int64) error {
+	return nil
+}
 
 // --- 测试 ---
 

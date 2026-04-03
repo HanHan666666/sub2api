@@ -694,7 +694,13 @@ export default {
       inactive: '已停用',
       quota_exhausted: '额度耗尽',
       expired: '已过期'
-    }
+    },
+    // 请求次数限速
+    rateLimitRequests: '请求次数限速',
+    requestUsage5h: '请求次数 (5小时)',
+    requestUsage1d: '请求次数 (1天)',
+    requestUsage7d: '请求次数 (7天)',
+    noLimit: '不限制'
   },
 
   // Usage
@@ -774,7 +780,13 @@ export default {
     exportExcelSuccess: '使用数据导出成功（Excel格式）',
     exportExcelFailed: '使用数据导出失败',
     imageUnit: '张',
-    userAgent: 'User-Agent'
+    userAgent: 'User-Agent',
+    billingType: {
+      balance: '钱包余额',
+      subscription: '订阅套餐',
+      perRequest: '按次计费'
+    },
+    perRequestCost: '按次费用'
   },
 
   // Redeem
@@ -1706,16 +1718,26 @@ export default {
       subscription: {
         title: '订阅设置',
         type: '计费类型',
-        typeHint: '标准计费从用户余额扣除。订阅模式使用配额限制。',
+        typeHint: '标准计费从用户余额扣除。订阅模式使用配额限制。按次计费模式按单次价格或次数限额生效。',
         typeNotEditable: '分组创建后无法修改计费类型。',
         standard: '标准（余额）',
         subscription: '订阅（配额）',
+        perRequest: '按次计费（请求次数）',
         dailyLimit: '每日限额（USD）',
         weeklyLimit: '每周限额（USD）',
         monthlyLimit: '每月限额（USD）',
         defaultValidityDays: '默认有效期（天）',
         validityHint: '分配给用户时订阅的有效天数',
         noLimit: '无限制'
+      },
+      perRequest: {
+        price: '每次请求单价（美元）',
+        priceHint: '如果该分组只靠次数限额控制，可留空不配置单价',
+        dailyLimit: '每日请求次数限额',
+        weeklyLimit: '每周请求次数限额',
+        monthlyLimit: '每月请求次数限额',
+        noLimit: '不限制',
+        requirePriceOrLimit: '按次计费模式需要设置单价或至少一个次数限额'
       },
       imagePricing: {
         title: '图片生成计费',
@@ -1831,6 +1853,7 @@ export default {
         user: '用户',
         group: '分组',
         usage: '用量',
+        requestUsage: '请求次数用量',
         expires: '到期时间',
         status: '状态',
         actions: '操作'
@@ -3416,6 +3439,7 @@ export default {
       allBillingTypes: '全部计费类型',
       billingTypeBalance: '钱包余额',
       billingTypeSubscription: '订阅套餐',
+      billingTypePerRequest: '按次计费',
       ipAddress: 'IP',
       clickToViewBalance: '点击查看充值记录',
       failedToLoadUser: '加载用户信息失败',
@@ -4929,7 +4953,14 @@ export default {
     expiresOn: '{date} 到期',
     resetIn: '{time} 后重置',
     windowNotActive: '等待首次使用',
-    usageOf: '已用 {used} / {limit}'
+    usageOf: '已用 {used} / {limit}',
+    // 按次计费相关
+    perRequestPrice: '单次请求价格',
+    request: '次',
+    requests: '次',
+    dailyRequests: '每日请求次数',
+    weeklyRequests: '每周请求次数',
+    monthlyRequests: '每月请求次数'
   },
 
   // Onboarding Tour

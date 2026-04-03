@@ -60,6 +60,17 @@ type APIKey struct {
 	Window5hStart *time.Time // Start of current 5h window
 	Window1dStart *time.Time // Start of current 1d window
 	Window7dStart *time.Time // Start of current 7d window
+
+	// Request count rate limit fields
+	RateLimitRequests5h   *int64    // Max requests per 5h (nil = unlimited)
+	RateLimitRequests1d   *int64    // Max requests per 1d (nil = unlimited)
+	RateLimitRequests7d   *int64    // Max requests per 7d (nil = unlimited)
+	UsageRequests5h       int64     // Used requests in current 5h window
+	UsageRequests1d       int64     // Used requests in current 1d window
+	UsageRequests7d       int64     // Used requests in current 7d window
+	WindowRequests5hStart *time.Time // Start of current 5h request window
+	WindowRequests1dStart *time.Time // Start of current 1d request window
+	WindowRequests7dStart *time.Time // Start of current 7d request window
 }
 
 func (k *APIKey) IsActive() bool {
